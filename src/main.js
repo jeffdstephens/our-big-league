@@ -1,16 +1,14 @@
 import Vue from "vue";
-import BootstrapVue from "bootstrap-vue";
 import App from "./App.vue";
 import router from "./router";
-import "bootstrap/dist/css/bootstrap.css";
-import "bootstrap-vue/dist/bootstrap-vue.css";
+import vuetify from "./plugins/vuetify";
+import store from "./store/index";
 
 Vue.config.productionTip = false;
 
-// Make BootstrapVue available throughout your project
-Vue.use(BootstrapVue);
-
 new Vue({
+  store,
   router,
+  vuetify,
   render: (h) => h(App),
 }).$mount("#app");
