@@ -58,9 +58,9 @@ export default new Vuex.Store({
       {
         id: 8,
         name: "Junkyard Dawgs",
-        appearances: "0",
-        championships: 0,
-        championshipYears: [],
+        appearances: "1",
+        championships: 1,
+        championshipYears: [2023],
       },
       {
         id: 9,
@@ -72,9 +72,9 @@ export default new Vuex.Store({
       {
         id: 10,
         name: "Menace",
-        appearances: "4",
-        championships: 2,
-        championshipYears: [2011, 2015],
+        appearances: "5",
+        championships: 2.5,
+        championshipYears: [2011, 2015, 2022],
       },
       {
         id: 11,
@@ -86,9 +86,9 @@ export default new Vuex.Store({
       {
         id: 12,
         name: "Showtime",
-        appearances: "3",
-        championships: 1,
-        championshipYears: [2017],
+        appearances: "4",
+        championships: 1.5,
+        championshipYears: [2017, 2022],
       },
       {
         id: 13,
