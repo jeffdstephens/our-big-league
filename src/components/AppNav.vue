@@ -10,10 +10,9 @@ const emit = defineEmits(['close'])
 const router = useRouter()
 
 const navItems = [
-  { name: 'Home', path: '/' },
-  { name: 'Champions', path: '/champions' },
-  { name: 'Drafts', path: '/drafts' },
   { name: 'Teams', path: '/teams' },
+  { name: 'Drafts', path: '/drafts' },
+  { name: 'Champions', path: '/champions' },
   { name: 'About', path: '/about' },
 ]
 
@@ -31,19 +30,21 @@ watch(() => router.currentRoute.value, () => {
   <!-- Backdrop -->
   <div
     v-if="isOpen"
-    class="fixed inset-0 bg-black/50 z-40"
+    class="fixed inset-0 bg-black/50 z-[1100]"
     @click="$emit('close')"
   />
 
   <!-- Drawer -->
   <aside
     :class="[
-      'fixed top-0 left-0 h-full w-64 bg-black text-white z-50 transform transition-transform duration-300 ease-in-out',
-      isOpen ? 'translate-x-0' : '-translate-x-full'
+      'fixed top-0 right-0 h-full w-64 bg-black text-white z-[1200] transform transition-transform duration-300 ease-in-out',
+      isOpen ? 'translate-x-0' : 'translate-x-full'
     ]"
   >
     <div class="p-4 border-b border-gray-700">
-      <h2 class="text-lg font-medium">Our Big League</h2>
+      <button @click="navigateTo('/')" class="text-lg font-medium hover:text-gray-300 transition-colors">
+        Our Big League
+      </button>
     </div>
     <nav class="py-4">
       <button
