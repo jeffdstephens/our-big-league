@@ -10,9 +10,16 @@ const mapRef = ref(null)
 
 // Map configuration - centered on continental US
 const defaultCenter = [39.5, -98.35]
-const defaultZoom = 4
+const desktopZoom = 4
+const mobileZoom = 3
+const mobileBreakpoint = 640  // Phones only - tablets use desktop zoom
+
+const getDefaultZoom = () => {
+  return window.innerWidth < mobileBreakpoint ? mobileZoom : desktopZoom
+}
+
 const mapCenter = ref([...defaultCenter])
-const mapZoom = ref(defaultZoom)
+const mapZoom = ref(getDefaultZoom())
 
 // Import all logo images dynamically
 const logoModules = import.meta.glob('@/assets/*.{jpg,png}', { eager: true })
@@ -35,7 +42,7 @@ const teamsWithLogos = computed(() => {
 
 const resetMap = () => {
   if (mapRef.value?.leafletObject) {
-    mapRef.value.leafletObject.setView(defaultCenter, defaultZoom)
+    mapRef.value.leafletObject.setView(defaultCenter, getDefaultZoom())
   }
 }
 
