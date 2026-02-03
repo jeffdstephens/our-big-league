@@ -12,31 +12,42 @@ All available league history since 1998 will be included at launch.
 
 ## Tech Stack
 
-### Target Stack (to be implemented)
+### Current Stack
 - **Frontend:** Vue.js 3 (Composition API with `<script setup>`)
 - **Build Tool:** Vite
 - **Styling:** Tailwind CSS
 - **Backend/Serverless:** Vercel Serverless Functions (for API routes, auth callbacks, S3 upload handler)
-- **Database:** Supabase (PostgreSQL) — see Architecture section for rationale
-- **Auth:** Supabase Auth — Google OAuth first, magic link as secondary. Invite-only via approved_owners table.
-- **File Storage:** AWS S3 — dedicated bucket with scoped IAM user credentials. Photos accessed via pre-signed URLs.
-- **External API:** CBS Sports API — not in scope for initial build. Will be added later via proxied Vercel Serverless Functions.
-
-### Current Stack (legacy, to be replaced)
-The existing codebase uses Vue 2.6, Vue CLI 4.5, Vuetify 2.6, and Vuex 3.x. **Migration approach: rebuild from scratch** using the target stack above, not incremental conversion. Existing components serve as reference for functionality and UI patterns.
+- **Database:** Supabase (PostgreSQL) — all league data (teams, seasons, championships)
+- **Auth:** Supabase Auth — Google OAuth first, magic link as secondary. Invite-only via approved_owners table (not yet implemented)
+- **File Storage:** AWS S3 — dedicated bucket with scoped IAM user credentials. Photos accessed via pre-signed URLs (not yet implemented)
+- **External API:** CBS Sports API — not in scope for initial build. Will be added later via proxied Vercel Serverless Functions
 
 ---
 
 ## Architecture Decisions
 
-### Data Layer: Hybrid Approach
-Static historical data (championships, draft recaps, league lore) lives as **JSON files in `public/data/`** — NOT `src/data/`. This distinction matters: files in `public/` are served as static assets and fetched at runtime via `fetch()`, meaning the JSON can be updated and pushed to the repo without any app code change or rebuild. A `git push` is all that's needed and Vercel serves the new file immediately. If these lived in `src/` they would be bundled at build time and baked into the app, defeating the purpose.
+### Data Layer: Supabase PostgreSQL
+All league data lives in **Supabase PostgreSQL**, including teams, seasons, championships, and draft locations. This provides:
+- Easy data updates via Supabase dashboard (no code changes needed)
+- Proper relational data model with foreign keys
+- Support for future features (user accounts, photos, owner-specific content)
+- Clean queries for complex data relationships (e.g., "all draft picks by Owner X," "championship history with runner-up info")
 
-Components fetch these files at runtime, e.g. `fetch('/data/championships.json')`. This keeps historical pages fast — no DB round-trip needed.
+**Database Schema:**
+- `teams` — Team info with owner details, location coordinates for map, active/defunct status
+- `team_aliases` — Maps historical team names to current teams (e.g., "Real Stoutboogee" → "Stout")
+- `draft_locations` — Cities where drafts have been held, with coordinates
+- `seasons` — Year-by-year results with champion, runner-up, draft location, notes
+- `approved_owners` — Links to teams table for auth gating (future feature)
+- `draft_photos` — Photos uploaded by owners for each draft year (future feature)
 
-Dynamic data (user accounts, uploaded photos) goes through **Supabase**.
+**Service Layer:**
+- `src/services/teamService.js` — Team CRUD operations and stats calculation
+- `src/services/seasonService.js` — Season/championship queries
 
-Why Supabase over Firebase: The historical data is inherently relational — owners, drafts, picks, seasons, placements all relate to each other. PostgreSQL lets us query this cleanly (e.g., "all draft picks by Owner X across every year," "championship history with runner-up info"). Firebase would work but would get awkward as the archive grows.
+**Composables:**
+- `src/composables/useTeamData.js` — Fetches teams with calculated stats
+- `src/composables/useChampionshipData.js` — Fetches seasons, draft locations, championship stats and tiers
 
 ### Auth
 Supabase Auth is the full authentication layer for the entire site — not just database-level auth. It handles login triggers, OAuth flows, token management, session persistence, and is what route protection checks against. Here's how each piece works:
@@ -67,20 +78,18 @@ Vercel. Connected to the GitHub repo via Vercel's native Git integration. Push t
 ```
 /
 ├── public/                  # Static public assets
-│   ├── data/                # Static historical JSON — fetched at runtime, not bundled
-│   │   ├── championships.json
-│   │   ├── drafts/          # Draft recap data by year (e.g., draft_2019.json)
-│   │   └── owners.json      # Static owner info
 │   └── images/              # Any static images not tied to uploads
 ├── src/
+│   ├── assets/              # Team logos, league branding images
 │   ├── components/          # Reusable Vue components
+│   │   └── champions/       # Championship-related components
+│   ├── composables/         # Vue composables (useSupabase, useTeamData, useChampionshipData)
 │   ├── pages/               # Route-level page components (one per view)
-│   ├── layouts/             # Page layouts (default, auth-required, etc.)
-│   ├── composables/         # Vue composables (useAuth, useSupabase, etc.)
-│   ├── services/            # API client wrappers (Supabase, CBS proxy calls)
-│   ├── stores/              # Pinia or Vuex stores if state gets complex
-│   └── assets/              # Fonts, global styles
-├── api/                     # Vercel Serverless Functions
+│   └── services/            # API client wrappers (teamService, seasonService)
+├── supabase/                # Database setup scripts
+│   ├── schema.sql           # Table definitions, RLS policies
+│   └── seed.sql             # Initial data (teams, seasons, draft locations)
+├── api/                     # Vercel Serverless Functions (future)
 │   ├── auth/                # Auth-related serverless functions (invite-only gating)
 │   └── uploads/             # S3 photo upload handler (generates pre-signed URLs)
 ├── .env.local               # Local environment variables (gitignored)
@@ -95,13 +104,20 @@ Vercel. Connected to the GitHub repo via Vercel's native Git integration. Push t
 All secrets live in `.env.local` (local dev) and Vercel environment settings (production). Never commit secrets to the repo. The `.env.example` file documents what's needed:
 
 ```
-SUPABASE_URL=
-SUPABASE_ANON_KEY=                 # Publishable key — safe for client-side use
+# Supabase - Client-side (VITE_ prefix required for Vite to expose to browser)
+VITE_SUPABASE_URL=                 # Full Supabase project URL
+VITE_SUPABASE_ANON_KEY=            # Publishable key — safe for client-side use
+
+# Supabase - Server-side only (for serverless functions)
 SUPABASE_SERVICE_KEY=              # Secret key — server-side only (Serverless Functions)
+
+# AWS S3 - Server-side only (future photo uploads)
 AWS_ACCESS_KEY_ID=                 # IAM user scoped to the S3 bucket only
 AWS_SECRET_ACCESS_KEY=             # IAM user secret — never in client code
 AWS_S3_BUCKET_NAME=                # Dedicated bucket for league archive photos
 ```
+
+**Important:** Vite requires the `VITE_` prefix for environment variables to be accessible in client-side code. Server-side variables (used in Vercel Serverless Functions) do not need this prefix.
 
 ---
 
@@ -109,8 +125,8 @@ AWS_S3_BUCKET_NAME=                # Dedicated bucket for league archive photos
 - **Always create a feature branch before making code changes.** Never commit directly to `main`. Use descriptive branch names like `feature/champions-page` or `fix/map-markers`.
 - Use **Composition API** style in all Vue components (`setup()` or `<script setup>`)
 - Keep components focused. Pages orchestrate; components render.
-- Static historical data lives in `public/data/` and is fetched at runtime via `fetch('/data/...')`. Do NOT import these files into components — that would bundle them at build time and break the ability to update them with a simple push.
-- All external API calls go through the `src/services/` layer. Components never call APIs directly.
+- **Data fetching:** All database queries go through the `src/services/` layer (teamService.js, seasonService.js). Pages use composables (useTeamData, useChampionshipData) which call these services. Components never call Supabase directly.
+- **Data updates:** Update data via Supabase dashboard — no code changes needed for adding new seasons, teams, etc.
 - CBS API is not in scope for the initial build. When added later, calls will go through `api/cbs/` proxy routes. Never put CBS keys in client code.
 - Photo uploads go through the `api/uploads/` serverless function. The function uses AWS SDK with the scoped IAM credentials to write to S3 and returns a pre-signed URL for the client to use when displaying photos. AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) are server-side only — never exposed to client code.
 - When adding a new feature, add a route to `vercel.json` if it needs a serverless function.
@@ -125,40 +141,39 @@ AWS_S3_BUCKET_NAME=                # Dedicated bucket for league archive photos
 
 ## Current Status
 
-### Existing Assets (to preserve during rebuild)
-- **Team logos:** 14 images in `src/assets/` (amw.jpg, birrrdy.jpg, bucks.jpg, dumpster-fire.jpg, hampton-ballers.jpg, nbc.png, phunky-cold.jpg, skindeep-ballaz.jpg, smallz.png, ted.jpg, todd.jpg, war-ready.jpg, white-street.jpg, wolf-pack.jpg)
+### Completed
+- **Vue 3 + Vite + Tailwind CSS** project setup
+- **Supabase integration** — database schema and seed data scripts in `supabase/` folder
+- **Service layer** — teamService.js, seasonService.js for all database queries
+- **Composables** — useSupabase.js, useTeamData.js, useChampionshipData.js
+- **Pages:**
+  - ChampionsPage.vue — Stats cards, history table, championship summary by tier
+  - DraftsPage.vue — Interactive map with draft location pins, linked to detail pages
+  - DraftDetailPage.vue — Individual draft year pages with prev/next navigation
+  - TeamsPage.vue — Interactive Leaflet map with team markers and popups
+- **Components:**
+  - ChampionshipStats.vue — 5 stats cards (Total Seasons, Unique Champions, Most Titles, Longest Drought, No Titles)
+  - ChampionshipHistory.vue — Sortable history table with color-coded champion/runner-up
+  - ChampionshipSummary.vue — Teams grouped by championship count
+
+### Assets
+- **Team logos:** 14 images in `src/assets/`
 - **League branding:** obl-icon.png, obl-logo.png, logo.svg, trophy.png
-- **Team data:** Championship history for 14 teams stored in Vuex (will migrate to `public/data/championships.json`)
-
-### Legacy Pages (reference for rebuild — all in-progress)
-- **Home.vue** — Landing page stub
-- **Champions.vue** — Functional championship table with two views (Team View, Chronological View), sorting, and color-coded stats. Uses Vuetify data tables.
-- **Drafts.vue** — Stub ("Coming soon...")
-- **Teams.vue** — Interactive Leaflet map with marker clustering showing team locations
-- **About.vue** — Stub ("Coming soon...")
-
-### Legacy Components
-- **ChampionsTable.vue** — Sophisticated data table with tabs, dynamic styling, calculated metrics (championship count, appearances, years since last). Good reference for functionality.
 
 ### Infrastructure Status
-- Supabase project created — URL, Publishable key, and Secret key obtained
-- Vercel account created and connected to the GitHub repo — not yet deployed
-- AWS S3 bucket created with scoped IAM user — credentials obtained
-- No `public/data/` directory created yet
-- No `src/composables/` or `src/services/` directories
-- No `api/` serverless functions directory
-- No database tables created yet in Supabase
-- No auth implemented yet
-- No environment variable setup (`.env.example` not created)
-- No CBS API integration (out of scope for now)
+- Supabase project created with URL, publishable key, and secret key
+- Database schema and seed SQL scripts ready (need to run in Supabase SQL Editor)
+- Vercel account connected to GitHub repo
+- AWS S3 bucket created with scoped IAM credentials
+- Environment variables configured in `.env.local`
 
 ### What's NOT Built Yet
-- Vue 3 + Vite + Tailwind project setup
-- Static JSON data files in `public/data/`
+- Run database schema and seed scripts in Supabase (manual step required)
 - Authentication (Supabase Auth with Google OAuth)
 - Route protection via useAuth composable
-- Photo upload functionality
+- Photo upload functionality (S3 integration)
 - Serverless functions for auth gating and S3 uploads
+- CBS API integration (out of scope for now)
 
 ---
 
@@ -169,12 +184,21 @@ AWS_S3_BUCKET_NAME=                # Dedicated bucket for league archive photos
 - [x] League history: All years since 1998 included at launch
 - [x] Auth priority: Basic auth first (Supabase + Google OAuth), magic link secondary
 - [x] Tech migration: Rebuild from scratch with Vue 3 + Vite + Tailwind (not incremental)
-- [x] Data storage: Static JSON in `public/data/` for historical data
+- [x] Data storage: Supabase PostgreSQL for all league data (teams, seasons, championships)
+
+### Completed
+- [x] Vue 3 + Vite + Tailwind project setup
+- [x] Supabase database schema design
+- [x] Migrate championship/team data from JSON to Supabase
+- [x] Create service layer and composables for data fetching
+- [x] Champions page with stats, history, and summary
+- [x] Drafts page with interactive map
+- [x] Teams page with interactive map
 
 ### Still Pending
-- [ ] Gather league owner email addresses for seeding `approved_owners` table in Supabase
-- [ ] Set up Vue 3 + Vite + Tailwind project (replaces current Vue 2 setup)
-- [ ] Create `public/data/` directory structure and migrate team/championship data from Vuex to JSON
+- [ ] **Run database setup** — Execute `supabase/schema.sql` then `supabase/seed.sql` in Supabase SQL Editor
+- [ ] Gather league owner email addresses for seeding `approved_owners` table
 - [ ] Implement Supabase Auth with Google OAuth
 - [ ] Create `.env.example` with required environment variables
+- [ ] Photo upload functionality
 - [ ] CBS Sports API — revisit when ready. Will need developer account and API credentials before starting that feature.

@@ -1,40 +1,31 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import { useChampionshipData } from '../composables/useChampionshipData'
 
 const route = useRoute()
 const year = computed(() => parseInt(route.params.year))
 
-const seasons = ref([])
-const loading = ref(true)
-const error = ref(null)
+const { seasons, loading, error } = useChampionshipData()
 
 const season = computed(() => {
+  if (!seasons.value) return null
   return seasons.value.find(s => s.year === year.value)
 })
 
 const prevYear = computed(() => {
+  if (!seasons.value) return null
   const idx = seasons.value.findIndex(s => s.year === year.value)
   return idx > 0 ? seasons.value[idx - 1].year : null
 })
 
 const nextYear = computed(() => {
+  if (!seasons.value) return null
   const idx = seasons.value.findIndex(s => s.year === year.value)
   return idx < seasons.value.length - 1 ? seasons.value[idx + 1].year : null
 })
 
-onMounted(async () => {
-  try {
-    const response = await fetch('/data/championships.json')
-    if (!response.ok) throw new Error('Failed to load draft data')
-    const data = await response.json()
-    seasons.value = data.seasons
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-})
+// Championship data is fetched automatically by useChampionshipData composable
 </script>
 
 <template>

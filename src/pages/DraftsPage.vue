@@ -1,13 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import { useChampionshipData } from '../composables/useChampionshipData'
 
-const draftLocations = ref([])
-const seasons = ref([])
-const loading = ref(true)
-const error = ref(null)
+const { seasons, draftLocations, loading, error } = useChampionshipData()
 const mapRef = ref(null)
 
 // Map configuration - centered on continental US
@@ -29,19 +27,8 @@ const resetMap = () => {
   }
 }
 
-onMounted(async () => {
-  try {
-    const response = await fetch('/data/championships.json')
-    if (!response.ok) throw new Error('Failed to load draft data')
-    const data = await response.json()
-    draftLocations.value = data.draftLocations.filter(loc => loc.city !== 'Virtual')
-    seasons.value = data.seasons
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-})
+// Championship data is fetched automatically by useChampionshipData composable
+// Virtual locations are already filtered out in the composable
 </script>
 
 <template>
