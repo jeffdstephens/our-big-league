@@ -106,6 +106,7 @@ AWS_S3_BUCKET_NAME=                # Dedicated bucket for league archive photos
 ---
 
 ## Key Conventions for Claude Code
+- **Always create a feature branch before making code changes.** Never commit directly to `main`. Use descriptive branch names like `feature/champions-page` or `fix/map-markers`.
 - Use **Composition API** style in all Vue components (`setup()` or `<script setup>`)
 - Keep components focused. Pages orchestrate; components render.
 - Static historical data lives in `public/data/` and is fetched at runtime via `fetch('/data/...')`. Do NOT import these files into components — that would bundle them at build time and break the ability to update them with a simple push.
