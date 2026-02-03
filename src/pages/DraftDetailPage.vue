@@ -25,6 +25,41 @@ const nextYear = computed(() => {
   return idx < seasons.value.length - 1 ? seasons.value[idx + 1].year : null
 })
 
+const host = computed(() => {
+  if (!seasons.value || !nextYear.value) return null
+  const prevSeason = seasons.value.find(s => s.year === nextYear.value)
+  if (!prevSeason) return null
+
+  const championTeam = prevSeason.champion
+  if (!championTeam) return null
+
+  // Check if co-championship year
+  if (prevSeason.isCoChampionship && prevSeason.coChampion) {
+    // Return both champions for co-championship
+    return {
+      isCoChampionship: true,
+      champion1: {
+        firstName: championTeam.owner_first_name,
+        lastName: championTeam.owner_last_name,
+        teamName: championTeam.name
+      },
+      champion2: {
+        firstName: prevSeason.coChampion.owner_first_name,
+        lastName: prevSeason.coChampion.owner_last_name,
+        teamName: prevSeason.coChampion.name
+      }
+    }
+  }
+
+  // Regular single champion
+  return {
+    isCoChampionship: false,
+    firstName: championTeam.owner_first_name,
+    lastName: championTeam.owner_last_name,
+    teamName: championTeam.name
+  }
+})
+
 // Championship data is fetched automatically by useChampionshipData composable
 </script>
 
@@ -65,6 +100,12 @@ const nextYear = computed(() => {
             <div class="text-center">
               <h1 class="text-3xl font-bold text-obl-header">{{ year }} Draft</h1>
               <p class="text-gray-500">Season {{ season.seasonNumber }}</p>
+              <p v-if="host && !host.isCoChampionship" class="text-sm text-gray-600 mt-1">
+                Hosted by: {{ host.firstName }} {{ host.lastName }} ({{ host.teamName }})
+              </p>
+              <p v-if="host && host.isCoChampionship" class="text-sm text-gray-600 mt-1">
+                Hosted by: {{ host.champion1.firstName }} {{ host.champion1.lastName }} ({{ host.champion1.teamName }}) & {{ host.champion2.firstName }} {{ host.champion2.lastName }} ({{ host.champion2.teamName }})
+              </p>
             </div>
 
             <RouterLink
@@ -96,7 +137,7 @@ const nextYear = computed(() => {
             <!-- Champion -->
             <div class="bg-amber-50 rounded-lg p-4 text-center border-2 border-amber-500">
               <div class="text-sm text-gray-500 mb-1">Champion</div>
-              <div class="text-lg font-bold text-amber-600">{{ season.champion }}</div>
+              <div class="text-lg font-bold text-amber-600">{{ season.championDisplay }}</div>
             </div>
           </div>
 
