@@ -6,6 +6,7 @@ import DraftDetailPage from '../pages/DraftDetailPage.vue'
 import TeamsPage from '../pages/TeamsPage.vue'
 import AboutPage from '../pages/AboutPage.vue'
 import AdminPage from '../pages/AdminPage.vue'
+import EditTeamPage from '../pages/EditTeamPage.vue'
 import { useAuth } from '../composables/useAuth'
 
 const routes = [
@@ -19,6 +20,12 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: AdminPage,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/teams/:id',
+    name: 'EditTeam',
+    component: EditTeamPage,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
 ]
