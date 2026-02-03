@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 import { useAdminData } from '../composables/useAdminData'
@@ -7,6 +7,10 @@ import { useAdminData } from '../composables/useAdminData'
 const { isAdmin, loading: authLoading } = useAuth()
 const router = useRouter()
 const { teams, loading, error } = useAdminData()
+
+// Separate active and inactive teams
+const activeTeams = computed(() => teams.value.filter(t => t.isActive))
+const inactiveTeams = computed(() => teams.value.filter(t => !t.isActive))
 
 // Redirect if not admin (backup protection, route guard handles primary check)
 watch([isAdmin, authLoading], ([admin, isLoading]) => {
@@ -37,71 +41,116 @@ watch([isAdmin, authLoading], ([admin, isLoading]) => {
         <p class="text-sm">{{ error }}</p>
       </div>
 
-      <!-- Owners Table -->
-      <div v-else class="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead>
-              <tr class="bg-black text-white">
-                <th class="px-6 py-3 text-left text-sm font-semibold">Team Name</th>
-                <th class="px-6 py-3 text-left text-sm font-semibold">Owner First Name</th>
-                <th class="px-6 py-3 text-left text-sm font-semibold">Owner Last Name</th>
-                <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold">Admin</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              <tr
-                v-for="team in teams"
-                :key="team.id"
-                class="hover:bg-gray-50 transition-colors"
-                :class="{ 'bg-gray-100': !team.isActive }"
-              >
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium" :class="{ 'text-gray-400': !team.isActive }">
-                      {{ team.name }}
+      <!-- Active Teams Table -->
+      <template v-else>
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="bg-black text-white">
+                  <th class="px-6 py-3 text-left text-sm font-semibold">Team Name</th>
+                  <th class="px-6 py-3 text-left text-sm font-semibold">Owner First Name</th>
+                  <th class="px-6 py-3 text-left text-sm font-semibold">Owner Last Name</th>
+                  <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                  <th class="px-6 py-3 text-center text-sm font-semibold">Admin</th>
+                  <th class="px-6 py-3 text-center text-sm font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr
+                  v-for="team in activeTeams"
+                  :key="team.id"
+                  class="hover:bg-gray-50 transition-colors"
+                >
+                  <td class="px-6 py-4">
+                    <span class="font-medium">{{ team.name }}</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    {{ team.ownerFirstName || '-' }}
+                  </td>
+                  <td class="px-6 py-4">
+                    {{ team.ownerLastName || '-' }}
+                  </td>
+                  <td class="px-6 py-4">
+                    <span v-if="team.ownerEmail" class="text-blue-600">
+                      {{ team.ownerEmail }}
                     </span>
-                    <span v-if="!team.isActive" class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
-                      Inactive
+                    <span v-else class="text-gray-400">-</span>
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <span
+                      v-if="team.isAdmin"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                    >
+                      Yes
                     </span>
-                  </div>
-                </td>
-                <td class="px-6 py-4" :class="{ 'text-gray-400': !team.isActive }">
-                  {{ team.ownerFirstName || '-' }}
-                </td>
-                <td class="px-6 py-4" :class="{ 'text-gray-400': !team.isActive }">
-                  {{ team.ownerLastName || '-' }}
-                </td>
-                <td class="px-6 py-4">
-                  <span v-if="team.ownerEmail" class="text-blue-600" :class="{ 'text-blue-400': !team.isActive }">
-                    {{ team.ownerEmail }}
-                  </span>
-                  <span v-else class="text-gray-400">-</span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <span
-                    v-if="team.isAdmin"
-                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-                  >
-                    Yes
-                  </span>
-                  <span v-else class="text-gray-400">-</span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <router-link
-                    :to="`/admin/teams/${team.id}`"
-                    class="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                  >
-                    Edit
-                  </router-link>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <span v-else class="text-gray-400">-</span>
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <router-link
+                      :to="`/admin/teams/${team.id}`"
+                      class="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                    >
+                      Edit
+                    </router-link>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+
+        <!-- Inactive Teams Table -->
+        <div v-if="inactiveTeams.length > 0" class="mt-10">
+          <h2 class="text-xl font-semibold text-gray-700 mb-4">Inactive Teams</h2>
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead>
+                  <tr class="bg-gray-600 text-white">
+                    <th class="px-6 py-3 text-left text-sm font-semibold">Team Name</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold">Owner First Name</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold">Owner Last Name</th>
+                    <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                    <th class="px-6 py-3 text-center text-sm font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr
+                    v-for="team in inactiveTeams"
+                    :key="team.id"
+                    class="hover:bg-gray-50 transition-colors bg-gray-50"
+                  >
+                    <td class="px-6 py-4">
+                      <span class="font-medium text-gray-500">{{ team.name }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">
+                      {{ team.ownerFirstName || '-' }}
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">
+                      {{ team.ownerLastName || '-' }}
+                    </td>
+                    <td class="px-6 py-4">
+                      <span v-if="team.ownerEmail" class="text-blue-400">
+                        {{ team.ownerEmail }}
+                      </span>
+                      <span v-else class="text-gray-400">-</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <router-link
+                        :to="`/admin/teams/${team.id}`"
+                        class="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                      >
+                        Edit
+                      </router-link>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>

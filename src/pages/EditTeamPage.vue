@@ -2,7 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-import { getTeamForEdit, updateTeamAndAdminStatus, addTeamAlias, deleteTeamAlias } from '../services/teamService'
+import { getTeamForEdit, updateTeamAndAdminStatus, addTeamAlias, deleteTeamAlias, updateTeamAlias } from '../services/teamService'
 import ToastNotification from '../components/ToastNotification.vue'
 
 const route = useRoute()
@@ -33,7 +33,10 @@ const formData = ref({
 const originalEmail = ref('')
 const aliases = ref([])
 const newAlias = ref('')
+const editingAliasId = ref(null)
+const editingAliasText = ref('')
 const formErrors = ref({})
+const geocoding = ref(false)
 
 // Toast state
 const toast = ref({
@@ -223,6 +226,98 @@ const handleDeleteAlias = async (aliasId) => {
   }
 }
 
+// Edit alias
+const startEditingAlias = (alias) => {
+  editingAliasId.value = alias.id
+  editingAliasText.value = alias.alias
+}
+
+const cancelEditingAlias = () => {
+  editingAliasId.value = null
+  editingAliasText.value = ''
+}
+
+const handleUpdateAlias = async (aliasId) => {
+  const newText = editingAliasText.value.trim()
+
+  if (!newText) {
+    showToast('Alias cannot be empty', 'error')
+    return
+  }
+
+  // Check for duplicate (excluding current alias)
+  if (aliases.value.some(a => a.id !== aliasId && a.alias.toLowerCase() === newText.toLowerCase())) {
+    showToast('This alias already exists', 'error')
+    return
+  }
+
+  try {
+    const { data, error: updateError } = await updateTeamAlias(aliasId, newText)
+
+    if (updateError) {
+      throw new Error(updateError.message)
+    }
+
+    // Update local state
+    const index = aliases.value.findIndex(a => a.id === aliasId)
+    if (index !== -1) {
+      aliases.value[index] = data
+    }
+
+    editingAliasId.value = null
+    editingAliasText.value = ''
+    showToast('Alias updated', 'success')
+
+  } catch (e) {
+    showToast(e.message || 'Failed to update alias', 'error')
+  }
+}
+
+// Geocoding - lookup lat/lng from location
+const lookupCoordinates = async () => {
+  const location = formData.value.location?.trim()
+
+  if (!location) {
+    showToast('Please enter a location first', 'error')
+    return
+  }
+
+  geocoding.value = true
+
+  try {
+    // Use Nominatim OpenStreetMap API (free, no API key required)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'OurBigLeague/1.0'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch coordinates')
+    }
+
+    const data = await response.json()
+
+    if (data.length === 0) {
+      showToast('Location not found. Try a more specific address.', 'error')
+      return
+    }
+
+    const result = data[0]
+    formData.value.lat = parseFloat(result.lat).toFixed(6)
+    formData.value.lng = parseFloat(result.lon).toFixed(6)
+    showToast('Coordinates found and populated', 'success')
+
+  } catch (e) {
+    showToast(e.message || 'Failed to lookup coordinates', 'error')
+  } finally {
+    geocoding.value = false
+  }
+}
+
 // Toast helpers
 const showToast = (message, type = 'success') => {
   toast.value = { show: true, message, type }
@@ -289,12 +384,32 @@ const closeToast = () => {
               <!-- Location -->
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <input
-                  v-model="formData.location"
-                  type="text"
-                  placeholder="e.g., Dallas, TX"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div class="flex gap-2">
+                  <input
+                    v-model="formData.location"
+                    type="text"
+                    placeholder="e.g., Dallas, TX"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    @click="lookupCoordinates"
+                    :disabled="geocoding"
+                    class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    title="Lookup coordinates from location"
+                  >
+                    <svg v-if="geocoding" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="hidden sm:inline">Lookup Coords</span>
+                  </button>
+                </div>
+                <p class="text-gray-500 text-xs mt-1">Enter city, state to auto-populate coordinates</p>
               </div>
 
               <!-- Latitude -->
@@ -442,14 +557,67 @@ const closeToast = () => {
                 :key="alias.id"
                 class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
               >
-                <span class="text-gray-700">{{ alias.alias }}</span>
-                <button
-                  type="button"
-                  @click="handleDeleteAlias(alias.id)"
-                  class="text-red-500 hover:text-red-700 text-sm"
-                >
-                  Delete
-                </button>
+                <!-- Editing mode -->
+                <template v-if="editingAliasId === alias.id">
+                  <input
+                    v-model="editingAliasText"
+                    type="text"
+                    class="flex-1 mr-2 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    @keyup.enter="handleUpdateAlias(alias.id)"
+                    @keyup.escape="cancelEditingAlias"
+                  />
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="handleUpdateAlias(alias.id)"
+                      class="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                      title="Save changes"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      @click="cancelEditingAlias"
+                      class="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors"
+                      title="Cancel editing"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </template>
+
+                <!-- Display mode -->
+                <template v-else>
+                  <span class="text-gray-700">{{ alias.alias }}</span>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="startEditingAlias(alias)"
+                      class="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors"
+                      title="Edit alias"
+                    >
+                      <!-- Pencil icon -->
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleDeleteAlias(alias.id)"
+                      class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded transition-colors"
+                      title="Delete alias"
+                    >
+                      <!-- Trash icon -->
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </template>
               </div>
             </div>
             <p v-else class="text-gray-500 text-sm mb-4">No aliases defined</p>

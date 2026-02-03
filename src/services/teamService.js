@@ -214,10 +214,13 @@ export async function updateTeam(teamId, updates) {
     .from('teams')
     .update(updates)
     .eq('id', teamId)
-    .select()
-    .single()
+    .select('id')
 
-  return { data, error }
+  if (!error && (!data || data.length === 0)) {
+    return { data: null, error: { message: 'Update failed - permission denied or team not found' } }
+  }
+
+  return { data: data?.[0] || null, error }
 }
 
 /**
@@ -231,10 +234,14 @@ export async function updateOwnerAdminStatus(teamId, isAdmin) {
     .from('approved_owners')
     .update({ is_admin: isAdmin })
     .eq('team_id', teamId)
-    .select()
-    .single()
+    .select('id')
 
-  return { data, error }
+  // If no rows were updated, it's OK - not all teams have approved_owners records
+  if (!error && (!data || data.length === 0)) {
+    return { data: null, error: null }
+  }
+
+  return { data: data?.[0] || null, error }
 }
 
 /**
@@ -274,6 +281,26 @@ export async function addTeamAlias(teamId, alias) {
     .single()
 
   return { data, error }
+}
+
+/**
+ * Update a team alias
+ * @param {string} aliasId - Alias UUID
+ * @param {string} newAlias - New alias text
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function updateTeamAlias(aliasId, newAlias) {
+  const { data, error } = await supabase
+    .from('team_aliases')
+    .update({ alias: newAlias.trim() })
+    .eq('id', aliasId)
+    .select('id, alias')
+
+  if (!error && (!data || data.length === 0)) {
+    return { data: null, error: { message: 'Alias update failed - permission denied or alias not found' } }
+  }
+
+  return { data: data?.[0] || null, error }
 }
 
 /**
