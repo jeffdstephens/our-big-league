@@ -154,3 +154,138 @@ export async function getTeamByAlias(alias) {
 
   return { data: data?.teams || null, error }
 }
+
+// ============================================
+// Admin Functions
+// ============================================
+
+/**
+ * Fetch all teams with their admin status for admin view
+ * @returns {Promise<{data: Array, error: Error|null}>}
+ */
+export async function getTeamsForAdmin() {
+  const { data, error } = await supabase
+    .from('teams')
+    .select(`
+      *,
+      approved_owners (
+        id,
+        is_admin
+      )
+    `)
+    .order('name')
+
+  return { data, error }
+}
+
+/**
+ * Fetch a single team with aliases and admin status for editing
+ * @param {string} teamId - Team UUID
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function getTeamForEdit(teamId) {
+  const { data, error } = await supabase
+    .from('teams')
+    .select(`
+      *,
+      approved_owners (
+        id,
+        is_admin
+      ),
+      team_aliases (
+        id,
+        alias
+      )
+    `)
+    .eq('id', teamId)
+    .single()
+
+  return { data, error }
+}
+
+/**
+ * Update a team's information
+ * @param {string} teamId - Team UUID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function updateTeam(teamId, updates) {
+  const { data, error } = await supabase
+    .from('teams')
+    .update(updates)
+    .eq('id', teamId)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+/**
+ * Update approved_owner admin status
+ * @param {string} teamId - Team UUID
+ * @param {boolean} isAdmin - New admin status
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function updateOwnerAdminStatus(teamId, isAdmin) {
+  const { data, error } = await supabase
+    .from('approved_owners')
+    .update({ is_admin: isAdmin })
+    .eq('team_id', teamId)
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+/**
+ * Update team and admin status together
+ * @param {string} teamId - Team UUID
+ * @param {Object} teamUpdates - Team fields to update
+ * @param {boolean} isAdmin - New admin status
+ * @returns {Promise<{success: boolean, error: Error|null}>}
+ */
+export async function updateTeamAndAdminStatus(teamId, teamUpdates, isAdmin) {
+  // Update team first
+  const { error: teamError } = await updateTeam(teamId, teamUpdates)
+  if (teamError) {
+    return { success: false, error: teamError }
+  }
+
+  // Update admin status
+  const { error: adminError } = await updateOwnerAdminStatus(teamId, isAdmin)
+  if (adminError) {
+    return { success: false, error: adminError }
+  }
+
+  return { success: true, error: null }
+}
+
+/**
+ * Add a new alias to a team
+ * @param {string} teamId - Team UUID
+ * @param {string} alias - Alias name to add
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function addTeamAlias(teamId, alias) {
+  const { data, error } = await supabase
+    .from('team_aliases')
+    .insert({ team_id: teamId, alias: alias.trim() })
+    .select()
+    .single()
+
+  return { data, error }
+}
+
+/**
+ * Delete a team alias
+ * @param {string} aliasId - Alias UUID
+ * @returns {Promise<{error: Error|null}>}
+ */
+export async function deleteTeamAlias(aliasId) {
+  const { error } = await supabase
+    .from('team_aliases')
+    .delete()
+    .eq('id', aliasId)
+
+  return { error }
+}
