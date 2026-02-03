@@ -46,7 +46,9 @@ export function useChampionshipData() {
         seasonNumber: season.season_number,
         year: season.year,
         draftLocation: season.draft_location?.city || 'Unknown',
-        champion: season.champion_display_name || season.champion?.name || 'Unknown',
+        champion: season.champion,  // Keep full team object with owner info
+        championDisplay: season.champion_display_name || season.champion?.name || 'Unknown',
+        coChampion: season.co_champion,  // Keep full co-champion object
         runnerUp: season.runner_up_display_name || season.runner_up?.name || '------',
         note: season.notes,
         isCoChampionship: season.is_co_championship

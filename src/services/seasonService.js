@@ -19,13 +19,17 @@ export async function getSeasons() {
         id,
         name,
         logo,
-        is_active
+        is_active,
+        owner_first_name,
+        owner_last_name
       ),
       co_champion:teams!seasons_co_champion_id_fkey (
         id,
         name,
         logo,
-        is_active
+        is_active,
+        owner_first_name,
+        owner_last_name
       ),
       runner_up:teams!seasons_runner_up_id_fkey (
         id,
@@ -59,13 +63,17 @@ export async function getSeasonByYear(year) {
         id,
         name,
         logo,
-        is_active
+        is_active,
+        owner_first_name,
+        owner_last_name
       ),
       co_champion:teams!seasons_co_champion_id_fkey (
         id,
         name,
         logo,
-        is_active
+        is_active,
+        owner_first_name,
+        owner_last_name
       ),
       runner_up:teams!seasons_runner_up_id_fkey (
         id,
