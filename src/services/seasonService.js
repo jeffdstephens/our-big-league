@@ -126,6 +126,7 @@ export async function getDraftLocations() {
 
 /**
  * Get championship statistics
+ * Includes inherited stats from predecessor teams
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
 export async function getChampionshipStats() {
@@ -155,6 +156,34 @@ export async function getChampionshipStats() {
 
   if (error) return { data: null, error }
 
+  // Get active teams for mapping
+  const { data: activeTeams, error: teamsError } = await supabase
+    .from('teams')
+    .select('id, name')
+    .eq('is_active', true)
+
+  if (teamsError) return { data: null, error: teamsError }
+
+  // Get team lineage to find predecessors
+  const { data: lineage, error: lineageError } = await supabase
+    .from('team_lineage')
+    .select('predecessor_id, successor_id')
+
+  if (lineageError) return { data: null, error: lineageError }
+
+  // Build successor map: predecessor_id -> [successor teams]
+  // This tells us which active teams should inherit a defunct team's stats
+  const successorMap = {}
+  lineage?.forEach(l => {
+    if (!successorMap[l.predecessor_id]) {
+      successorMap[l.predecessor_id] = []
+    }
+    const successorTeam = activeTeams.find(t => t.id === l.successor_id)
+    if (successorTeam) {
+      successorMap[l.predecessor_id].push(successorTeam)
+    }
+  })
+
   // Calculate stats
   const champCounts = {}
   const appearances = {}
@@ -165,7 +194,7 @@ export async function getChampionshipStats() {
     const coChampion = season.co_champion
     const runnerUp = season.runner_up
 
-    // Count championships
+    // Count championships - active teams
     if (champion && champion.is_active) {
       const name = champion.name
       if (coChampion) {
@@ -177,6 +206,20 @@ export async function getChampionshipStats() {
       lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
     }
 
+    // Count championships - defunct teams with successors
+    if (champion && !champion.is_active && successorMap[champion.id]) {
+      successorMap[champion.id].forEach(successor => {
+        const name = successor.name
+        if (coChampion) {
+          champCounts[name] = (champCounts[name] || 0) + 0.5
+        } else {
+          champCounts[name] = (champCounts[name] || 0) + 1
+        }
+        appearances[name] = (appearances[name] || 0) + 1
+        lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
+      })
+    }
+
     if (coChampion && coChampion.is_active) {
       const name = coChampion.name
       champCounts[name] = (champCounts[name] || 0) + 0.5
@@ -184,10 +227,18 @@ export async function getChampionshipStats() {
       lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
     }
 
-    // Count runner-up appearances
+    // Count runner-up appearances - active teams
     if (runnerUp && runnerUp.is_active) {
       const name = runnerUp.name
       appearances[name] = (appearances[name] || 0) + 1
+    }
+
+    // Count runner-up appearances - defunct teams with successors
+    if (runnerUp && !runnerUp.is_active && successorMap[runnerUp.id]) {
+      successorMap[runnerUp.id].forEach(successor => {
+        const name = successor.name
+        appearances[name] = (appearances[name] || 0) + 1
+      })
     }
   })
 
@@ -231,6 +282,7 @@ export async function getChampionshipStats() {
 
 /**
  * Get championship tiers (teams grouped by championship count)
+ * Includes inherited stats from predecessor teams
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getChampionshipTiers() {
@@ -259,6 +311,33 @@ export async function getChampionshipTiers() {
 
   if (error) return { data: null, error }
 
+  // Get active teams for mapping
+  const { data: activeTeams, error: teamsError } = await supabase
+    .from('teams')
+    .select('id, name')
+    .eq('is_active', true)
+
+  if (teamsError) return { data: null, error: teamsError }
+
+  // Get team lineage to find predecessors
+  const { data: lineage, error: lineageError } = await supabase
+    .from('team_lineage')
+    .select('predecessor_id, successor_id')
+
+  if (lineageError) return { data: null, error: lineageError }
+
+  // Build successor map: predecessor_id -> [successor teams]
+  const successorMap = {}
+  lineage?.forEach(l => {
+    if (!successorMap[l.predecessor_id]) {
+      successorMap[l.predecessor_id] = []
+    }
+    const successorTeam = activeTeams.find(t => t.id === l.successor_id)
+    if (successorTeam) {
+      successorMap[l.predecessor_id].push(successorTeam)
+    }
+  })
+
   const champCounts = {}
   const appearances = {}
 
@@ -267,7 +346,7 @@ export async function getChampionshipTiers() {
     const coChampion = season.co_champion
     const runnerUp = season.runner_up
 
-    // Only count active teams
+    // Count active teams
     if (champion && champion.is_active) {
       const name = champion.name
       if (coChampion) {
@@ -276,6 +355,19 @@ export async function getChampionshipTiers() {
         champCounts[name] = (champCounts[name] || 0) + 1
       }
       appearances[name] = (appearances[name] || 0) + 1
+    }
+
+    // Count defunct teams with successors
+    if (champion && !champion.is_active && successorMap[champion.id]) {
+      successorMap[champion.id].forEach(successor => {
+        const name = successor.name
+        if (coChampion) {
+          champCounts[name] = (champCounts[name] || 0) + 0.5
+        } else {
+          champCounts[name] = (champCounts[name] || 0) + 1
+        }
+        appearances[name] = (appearances[name] || 0) + 1
+      })
     }
 
     if (coChampion && coChampion.is_active) {
@@ -287,6 +379,14 @@ export async function getChampionshipTiers() {
     if (runnerUp && runnerUp.is_active) {
       const name = runnerUp.name
       appearances[name] = (appearances[name] || 0) + 1
+    }
+
+    // Count runner-up appearances - defunct teams with successors
+    if (runnerUp && !runnerUp.is_active && successorMap[runnerUp.id]) {
+      successorMap[runnerUp.id].forEach(successor => {
+        const name = successor.name
+        appearances[name] = (appearances[name] || 0) + 1
+      })
     }
   })
 

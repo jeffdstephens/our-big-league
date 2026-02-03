@@ -37,6 +37,7 @@ export async function getTeamById(id) {
 
 /**
  * Fetch all teams with their championship stats calculated
+ * Includes inherited stats from predecessor teams (e.g., 2 Deep → Jamaica's Finest + Showtime)
  * @returns {Promise<{data: Array, error: Error|null}>}
  */
 export async function getTeamsWithStats() {
@@ -56,33 +57,54 @@ export async function getTeamsWithStats() {
 
   if (seasonsError) return { data: null, error: seasonsError }
 
+  // Get team lineage to find predecessors
+  const { data: lineage, error: lineageError } = await supabase
+    .from('team_lineage')
+    .select('predecessor_id, successor_id')
+
+  if (lineageError) return { data: null, error: lineageError }
+
+  // Build predecessor map: successor_id -> [predecessor_ids]
+  const predecessorMap = {}
+  lineage?.forEach(l => {
+    if (!predecessorMap[l.successor_id]) {
+      predecessorMap[l.successor_id] = []
+    }
+    predecessorMap[l.successor_id].push(l.predecessor_id)
+  })
+
   // Calculate stats for each team
   const teamsWithStats = teams.map(team => {
     let championships = 0
     let appearances = 0
     const championshipYears = []
 
-    seasons.forEach(season => {
-      const isChampion = season.champion_id === team.id
-      const isCoChampion = season.co_champion_id === team.id
-      const isRunnerUp = season.runner_up_id === team.id
+    // Get all team IDs to count (team + predecessors)
+    const teamIds = [team.id, ...(predecessorMap[team.id] || [])]
 
-      if (isChampion) {
-        // Check if it's a co-championship
-        if (season.co_champion_id) {
+    seasons.forEach(season => {
+      teamIds.forEach(teamId => {
+        const isChampion = season.champion_id === teamId
+        const isCoChampion = season.co_champion_id === teamId
+        const isRunnerUp = season.runner_up_id === teamId
+
+        if (isChampion) {
+          // Check if it's a co-championship
+          if (season.co_champion_id) {
+            championships += 0.5
+          } else {
+            championships += 1
+          }
+          championshipYears.push(season.year)
+          appearances += 1
+        } else if (isCoChampion) {
           championships += 0.5
-        } else {
-          championships += 1
+          championshipYears.push(season.year)
+          appearances += 1
+        } else if (isRunnerUp) {
+          appearances += 1
         }
-        championshipYears.push(season.year)
-        appearances += 1
-      } else if (isCoChampion) {
-        championships += 0.5
-        championshipYears.push(season.year)
-        appearances += 1
-      } else if (isRunnerUp) {
-        appearances += 1
-      }
+      })
     })
 
     return {

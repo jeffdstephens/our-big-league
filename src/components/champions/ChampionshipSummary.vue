@@ -69,6 +69,19 @@ const rankedTeams = computed(() => {
 const maxAppearances = computed(() => {
   return Math.max(...rankedTeams.value.map(t => t.appearances))
 })
+
+// Determine brick type for each cell
+const getBrickType = (cellIndex, championships) => {
+  const fullChamps = Math.floor(championships)
+  const hasHalf = championships % 1 !== 0
+
+  if (cellIndex <= fullChamps) {
+    return 'full'
+  } else if (cellIndex === fullChamps + 1 && hasHalf) {
+    return 'half'
+  }
+  return 'gray'
+}
 </script>
 
 <template>
@@ -122,9 +135,14 @@ const maxAppearances = computed(() => {
                 <div
                   v-if="n <= team.appearances"
                   class="w-full h-full border-r-2"
-                  :class="n <= Math.ceil(team.championships)
-                    ? 'bg-amber-500 border-amber-600'
-                    : 'bg-gray-300 border-gray-400'"
+                  :class="{
+                    'bg-amber-500 border-amber-600': getBrickType(n, team.championships) === 'full',
+                    'border-amber-600': getBrickType(n, team.championships) === 'half',
+                    'bg-gray-300 border-gray-400': getBrickType(n, team.championships) === 'gray'
+                  }"
+                  :style="getBrickType(n, team.championships) === 'half'
+                    ? { background: 'linear-gradient(to right, #f59e0b 50%, #d1d5db 50%)' }
+                    : {}"
                 ></div>
               </div>
             </div>

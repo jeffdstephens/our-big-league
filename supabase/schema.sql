@@ -47,6 +47,24 @@ CREATE TABLE team_aliases (
 CREATE INDEX idx_team_aliases_alias ON team_aliases(alias);
 
 -- ============================================
+-- Table: team_lineage
+-- Tracks team splits/mergers for inherited stats
+-- ============================================
+CREATE TABLE team_lineage (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  predecessor_id uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  successor_id uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  relationship_type text NOT NULL DEFAULT 'split_into',
+  year_occurred integer,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(predecessor_id, successor_id)
+);
+
+CREATE INDEX idx_lineage_predecessor ON team_lineage(predecessor_id);
+CREATE INDEX idx_lineage_successor ON team_lineage(successor_id);
+
+-- ============================================
 -- Table: seasons
 -- Year-by-year championship results
 -- ============================================
@@ -106,6 +124,7 @@ CREATE INDEX idx_draft_photos_season ON draft_photos(season_id);
 ALTER TABLE draft_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_lineage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE approved_owners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE draft_photos ENABLE ROW LEVEL SECURITY;
@@ -114,6 +133,7 @@ ALTER TABLE draft_photos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read access" ON draft_locations FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON teams FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON team_aliases FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON team_lineage FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON seasons FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON draft_photos FOR SELECT USING (is_approved = true);
 
@@ -126,6 +146,9 @@ CREATE POLICY "Authenticated update" ON teams FOR UPDATE USING (auth.role() = 'a
 
 CREATE POLICY "Authenticated insert" ON team_aliases FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated update" ON team_aliases FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated insert" ON team_lineage FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated update" ON team_lineage FOR UPDATE USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Authenticated insert" ON seasons FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated update" ON seasons FOR UPDATE USING (auth.role() = 'authenticated');

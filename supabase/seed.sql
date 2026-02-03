@@ -63,6 +63,14 @@ INSERT INTO team_aliases (team_id, alias) VALUES
   ('a0000000-0000-0000-0000-000000000002', 'Blankland');
 
 -- ============================================
+-- Team Lineage (splits/mergers)
+-- 2 Deep split into Jamaica's Finest and Showtime
+-- ============================================
+INSERT INTO team_lineage (predecessor_id, successor_id, relationship_type, year_occurred, notes) VALUES
+  ('a0000000-0000-0000-0000-000000000018', 'a0000000-0000-0000-0000-000000000007', 'split_into', 2003, '2 Deep split into Jamaica''s Finest and Showtime'),
+  ('a0000000-0000-0000-0000-000000000018', 'a0000000-0000-0000-0000-000000000012', 'split_into', 2003, '2 Deep split into Jamaica''s Finest and Showtime');
+
+-- ============================================
 -- Seasons (28 years: 1998-2025)
 -- ============================================
 INSERT INTO seasons (year, season_number, draft_location_id, champion_id, champion_display_name, runner_up_id, runner_up_display_name, is_co_championship, co_champion_id, notes) VALUES
