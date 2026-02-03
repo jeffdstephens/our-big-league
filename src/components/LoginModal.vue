@@ -36,10 +36,18 @@ watch(isAuthenticated, (authenticated) => {
   }
 })
 
-// Clear errors when modal opens/closes
-watch(() => props.isOpen, (open) => {
-  if (open) {
+// Clear local state when modal closes (but preserve auth errors when opening)
+watch(() => props.isOpen, (open, wasOpen) => {
+  if (!open && wasOpen) {
+    // Modal is closing - clear everything
     clearError()
+    localError.value = ''
+    successMessage.value = ''
+    email.value = ''
+    password.value = ''
+    isSignUp.value = false
+  } else if (open) {
+    // Modal is opening - only clear local errors, keep auth errors visible
     localError.value = ''
     successMessage.value = ''
   }
@@ -124,9 +132,17 @@ const toggleMode = () => {
           <!-- Error message -->
           <div
             v-if="error || localError"
-            class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+            class="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg"
           >
-            {{ error || localError }}
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p class="text-red-800 font-medium">Access Denied</p>
+                <p class="text-red-700 text-sm mt-1">{{ error || localError }}</p>
+              </div>
+            </div>
           </div>
 
           <!-- Success message -->

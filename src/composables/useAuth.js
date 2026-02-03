@@ -38,7 +38,7 @@ export function useAuth() {
   // Direct Supabase validation (fallback for local dev)
   const validateEmailDirect = async (email) => {
     try {
-      const { data, error } = await supabase
+      const { data, error: queryError } = await supabase
         .from('teams')
         .select(`
           id,
@@ -51,9 +51,10 @@ export function useAuth() {
           )
         `)
         .ilike('owner_email', email)
-        .single()
+        .maybeSingle()  // Use maybeSingle to avoid 406 error when no rows found
 
-      if (error || !data) {
+      // No matching team/approved_owner found
+      if (queryError || !data) {
         return {
           valid: false,
           message: 'Email not authorized for this league'
@@ -120,7 +121,8 @@ export function useAuth() {
       } else if (event === 'SIGNED_OUT') {
         user.value = null
         userProfile.value = null
-        error.value = null
+        // Don't clear error here - it may contain validation failure message
+        // Error is cleared explicitly when user starts a new login attempt
       }
       loading.value = false
     })
