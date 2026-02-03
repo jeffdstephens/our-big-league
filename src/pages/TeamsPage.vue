@@ -1,11 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup, LIcon } from '@vue-leaflet/vue-leaflet'
+import { useTeamData } from '../composables/useTeamData'
 
-const teams = ref([])
-const loading = ref(true)
-const error = ref(null)
+const { teams, loading, error } = useTeamData()
 const mapRef = ref(null)
 
 // Map configuration - centered on continental US
@@ -34,6 +33,7 @@ const getLogoUrl = (logoFile) => {
 }
 
 const teamsWithLogos = computed(() => {
+  if (!teams.value) return []
   return teams.value.map(team => ({
     ...team,
     logoUrl: getLogoUrl(team.logo)
@@ -46,18 +46,7 @@ const resetMap = () => {
   }
 }
 
-onMounted(async () => {
-  try {
-    const response = await fetch('/data/teams.json')
-    if (!response.ok) throw new Error('Failed to load team data')
-    const data = await response.json()
-    teams.value = data.teams
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-})
+// Team data is fetched automatically by useTeamData composable
 </script>
 
 <template>

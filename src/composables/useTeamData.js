@@ -1,4 +1,5 @@
 import { ref, onMounted } from 'vue'
+import { getTeamsWithStats } from '../services/teamService'
 
 export function useTeamData() {
   const teams = ref(null)
@@ -8,12 +9,18 @@ export function useTeamData() {
   const fetchTeams = async () => {
     try {
       loading.value = true
-      const response = await fetch('/data/teams.json')
-      if (!response.ok) throw new Error('Failed to load team data')
-      const data = await response.json()
-      teams.value = data.teams
+      error.value = null
+
+      const { data, error: fetchError } = await getTeamsWithStats()
+
+      if (fetchError) {
+        throw new Error(fetchError.message)
+      }
+
+      teams.value = data
     } catch (e) {
       error.value = e.message
+      console.error('Error fetching teams:', e)
     } finally {
       loading.value = false
     }
