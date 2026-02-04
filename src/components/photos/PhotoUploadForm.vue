@@ -10,6 +10,14 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  uploadCurrent: {
+    type: Number,
+    default: 0
+  },
+  uploadTotal: {
+    type: Number,
+    default: 0
+  },
   isAuthenticated: {
     type: Boolean,
     default: false
@@ -19,14 +27,15 @@ const props = defineProps({
 const emit = defineEmits(['upload'])
 
 const isDragging = ref(false)
-const selectedFile = ref(null)
-const caption = ref('')
+const selectedFiles = ref([])
 const localError = ref(null)
 const fileInput = ref(null)
 
-const previewUrl = computed(() => {
-  if (!selectedFile.value) return null
-  return URL.createObjectURL(selectedFile.value)
+const previewUrls = computed(() => {
+  return selectedFiles.value.map(file => ({
+    file,
+    url: URL.createObjectURL(file)
+  }))
 })
 
 const formatFileSize = (bytes) => {
@@ -36,43 +45,68 @@ const formatFileSize = (bytes) => {
 }
 
 const validateFile = (file) => {
-  localError.value = null
-
   // Check file type
   const allowedTypes = ['image/jpeg', 'image/png']
   if (!allowedTypes.includes(file.type)) {
-    localError.value = 'Only JPG and PNG files are allowed'
-    return false
+    return { valid: false, error: `${file.name}: Only JPG and PNG files are allowed` }
   }
 
   // Check file size (10 MB)
   const maxSize = 10 * 1024 * 1024
   if (file.size > maxSize) {
-    localError.value = 'File size must be under 10 MB'
-    return false
+    return { valid: false, error: `${file.name}: File size must be under 10 MB` }
   }
 
-  return true
+  return { valid: true, error: null }
 }
 
 const handleFileSelect = (event) => {
-  const file = event.target.files?.[0]
-  if (file && validateFile(file)) {
-    selectedFile.value = file
-  }
+  const files = Array.from(event.target.files || [])
+  addFiles(files)
 }
 
 const handleDrop = (event) => {
   isDragging.value = false
-  const file = event.dataTransfer.files?.[0]
-  if (file && validateFile(file)) {
-    selectedFile.value = file
+  const files = Array.from(event.dataTransfer.files || [])
+  addFiles(files)
+}
+
+const addFiles = (files) => {
+  localError.value = null
+  const errors = []
+  const validFiles = []
+
+  for (const file of files) {
+    const result = validateFile(file)
+    if (result.valid) {
+      // Check for duplicates
+      const isDuplicate = selectedFiles.value.some(f => f.name === file.name && f.size === file.size)
+      if (!isDuplicate) {
+        validFiles.push(file)
+      }
+    } else {
+      errors.push(result.error)
+    }
+  }
+
+  if (validFiles.length > 0) {
+    selectedFiles.value = [...selectedFiles.value, ...validFiles]
+  }
+
+  if (errors.length > 0) {
+    localError.value = errors.join('; ')
+  }
+}
+
+const removeFile = (index) => {
+  selectedFiles.value = selectedFiles.value.filter((_, i) => i !== index)
+  if (selectedFiles.value.length === 0) {
+    localError.value = null
   }
 }
 
 const clearSelection = () => {
-  selectedFile.value = null
-  caption.value = ''
+  selectedFiles.value = []
   localError.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
@@ -80,16 +114,15 @@ const clearSelection = () => {
 }
 
 const handleUpload = () => {
-  if (!selectedFile.value) return
-  emit('upload', selectedFile.value, caption.value)
-  // Clear form after emit (parent will handle success/error)
+  if (selectedFiles.value.length === 0) return
+  emit('upload', selectedFiles.value)
   clearSelection()
 }
 </script>
 
 <template>
   <div v-if="isAuthenticated" class="upload-form bg-gray-50 rounded-lg p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Upload a Photo</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Photos</h3>
 
     <!-- Drag and Drop Zone -->
     <div
@@ -105,65 +138,65 @@ const handleUpload = () => {
         ref="fileInput"
         type="file"
         accept="image/jpeg,image/png"
+        multiple
         @change="handleFileSelect"
         class="hidden"
       />
 
-      <div v-if="!selectedFile">
+      <div v-if="selectedFiles.length === 0">
         <!-- Upload Icon -->
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        <p class="mt-2 text-gray-600">Drag and drop a photo here, or</p>
+        <p class="mt-2 text-gray-600">Drag and drop photos here, or</p>
         <button
           @click="fileInput.click()"
           class="mt-2 text-blue-600 hover:text-blue-700 font-medium"
         >
           browse to select
         </button>
-        <p class="mt-2 text-sm text-gray-500">JPG or PNG, max 10 MB</p>
+        <p class="mt-2 text-sm text-gray-500">JPG or PNG, max 10 MB each</p>
       </div>
 
-      <!-- Selected File Preview -->
-      <div v-else class="flex items-center gap-4">
-        <img
-          :src="previewUrl"
-          alt="Preview"
-          class="w-20 h-20 object-cover rounded"
-        />
-        <div class="text-left flex-1 min-w-0">
-          <p class="font-medium truncate text-gray-900">{{ selectedFile.name }}</p>
-          <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
-        </div>
-        <button
-          @click="clearSelection"
-          class="text-gray-400 hover:text-gray-600 p-1"
-          title="Remove"
+      <!-- Selected Files Preview -->
+      <div v-else class="space-y-3">
+        <div
+          v-for="(item, index) in previewUrls"
+          :key="index"
+          class="flex items-center gap-4 bg-white rounded-lg p-2"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <img
+            :src="item.url"
+            alt="Preview"
+            class="w-16 h-16 object-cover rounded"
+          />
+          <div class="text-left flex-1 min-w-0">
+            <p class="font-medium truncate text-gray-900 text-sm">{{ item.file.name }}</p>
+            <p class="text-xs text-gray-500">{{ formatFileSize(item.file.size) }}</p>
+          </div>
+          <button
+            @click.stop="removeFile(index)"
+            class="text-gray-400 hover:text-red-600 p-1"
+            title="Remove"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Add more button -->
+        <button
+          @click="fileInput.click()"
+          class="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium border border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+        >
+          + Add more photos
         </button>
       </div>
     </div>
 
-    <!-- Caption Input -->
-    <div v-if="selectedFile" class="mt-4">
-      <label class="block text-sm font-medium text-gray-700 mb-1">
-        Caption (optional)
-      </label>
-      <input
-        v-model="caption"
-        type="text"
-        maxlength="200"
-        placeholder="Add a caption..."
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <p class="text-xs text-gray-500 mt-1">{{ caption.length }}/200 characters</p>
-    </div>
-
     <!-- Upload Button -->
-    <div v-if="selectedFile" class="mt-4">
+    <div v-if="selectedFiles.length > 0" class="mt-4">
       <button
         @click="handleUpload"
         :disabled="uploading"
@@ -174,9 +207,16 @@ const handleUpload = () => {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          Uploading... {{ uploadProgress }}%
+          <span v-if="uploadTotal > 1">
+            Uploading {{ uploadCurrent }} of {{ uploadTotal }}...
+          </span>
+          <span v-else>
+            Uploading... {{ uploadProgress }}%
+          </span>
         </span>
-        <span v-else>Upload Photo</span>
+        <span v-else>
+          Upload {{ selectedFiles.length === 1 ? 'Photo' : `${selectedFiles.length} Photos` }}
+        </span>
       </button>
     </div>
 

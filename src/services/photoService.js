@@ -97,18 +97,16 @@ export async function uploadToS3(uploadUrl, file) {
  * @param {string} params.seasonId
  * @param {string} params.s3Key
  * @param {string} params.filename
- * @param {string} params.caption
  * @param {string} params.uploadedBy - approved_owners.id
  * @returns {Promise<{data: Object|null, error: Error|null}>}
  */
-export async function savePhotoMetadata({ seasonId, s3Key, filename, caption, uploadedBy }) {
+export async function savePhotoMetadata({ seasonId, s3Key, filename, uploadedBy }) {
   const { data, error } = await supabase
     .from('draft_photos')
     .insert({
       season_id: seasonId,
       s3_key: s3Key,
       filename,
-      caption: caption || null,
       uploaded_by: uploadedBy,
       is_approved: true
     })

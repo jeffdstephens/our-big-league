@@ -43,6 +43,7 @@ export function useChampionshipData() {
 
       // Transform seasons data to match expected format
       seasons.value = seasonsResult.data.map(season => ({
+        id: season.id,
         seasonNumber: season.season_number,
         year: season.year,
         draftLocation: season.draft_location?.city || 'Unknown',

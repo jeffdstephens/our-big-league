@@ -18,6 +18,8 @@ export function usePhotoData(seasonId, year) {
   const loading = ref(false)
   const uploading = ref(false)
   const uploadProgress = ref(0)
+  const uploadCurrent = ref(0)
+  const uploadTotal = ref(0)
   const error = ref(null)
 
   // Photos with resolved URLs and canDelete flag
@@ -59,16 +61,8 @@ export function usePhotoData(seasonId, year) {
     }
   }
 
-  // Upload a new photo
-  const uploadPhoto = async (file, caption = '') => {
-    if (!isAuthenticated.value) {
-      return { success: false, error: 'You must be logged in to upload photos' }
-    }
-
-    if (!seasonId.value || !year.value) {
-      return { success: false, error: 'Invalid season data' }
-    }
-
+  // Upload a single photo (internal helper)
+  const uploadSinglePhoto = async (file, ownerId) => {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
@@ -81,46 +75,85 @@ export function usePhotoData(seasonId, year) {
       return { success: false, error: 'File size must be under 10 MB' }
     }
 
+    // 1. Get pre-signed upload URL
+    const { uploadUrl, s3Key, error: urlError } = await getUploadUrl({
+      filename: file.name,
+      contentType: file.type,
+      seasonId: seasonId.value,
+      year: year.value
+    })
+    if (urlError) throw new Error(urlError)
+
+    // 2. Upload to S3
+    const { success, error: uploadError } = await uploadToS3(uploadUrl, file)
+    if (!success) throw new Error(uploadError)
+
+    // 3. Save metadata to Supabase
+    const { error: saveError } = await savePhotoMetadata({
+      seasonId: seasonId.value,
+      s3Key,
+      filename: file.name,
+      uploadedBy: ownerId
+    })
+    if (saveError) throw saveError
+
+    return { success: true, error: null }
+  }
+
+  // Upload multiple photos
+  const uploadPhotos = async (files) => {
+    if (!isAuthenticated.value) {
+      return { success: false, error: 'You must be logged in to upload photos' }
+    }
+
+    if (!seasonId.value || !year.value) {
+      return { success: false, error: 'Invalid season data' }
+    }
+
+    // Convert to array if single file
+    const fileArray = Array.isArray(files) ? files : [files]
+
+    if (fileArray.length === 0) {
+      return { success: false, error: 'No files to upload' }
+    }
+
     uploading.value = true
     uploadProgress.value = 0
+    uploadCurrent.value = 0
+    uploadTotal.value = fileArray.length
     error.value = null
 
+    const errors = []
+
     try {
-      // 1. Get pre-signed upload URL
-      uploadProgress.value = 10
-      const { uploadUrl, s3Key, error: urlError } = await getUploadUrl({
-        filename: file.name,
-        contentType: file.type,
-        seasonId: seasonId.value,
-        year: year.value
-      })
-      if (urlError) throw new Error(urlError)
-
-      // 2. Upload to S3
-      uploadProgress.value = 30
-      const { success, error: uploadError } = await uploadToS3(uploadUrl, file)
-      if (!success) throw new Error(uploadError)
-
-      uploadProgress.value = 70
-
-      // 3. Get the approved_owner id for current user
+      // Get the approved_owner id for current user (once for all uploads)
       const { ownerId, error: ownerError } = await getApprovedOwnerId(userProfile.value.teamId)
       if (ownerError || !ownerId) throw new Error(ownerError || 'Could not find owner record')
 
-      // 4. Save metadata to Supabase
-      const { error: saveError } = await savePhotoMetadata({
-        seasonId: seasonId.value,
-        s3Key,
-        filename: file.name,
-        caption,
-        uploadedBy: ownerId
-      })
-      if (saveError) throw saveError
+      // Upload each file
+      for (let i = 0; i < fileArray.length; i++) {
+        uploadCurrent.value = i + 1
+        uploadProgress.value = Math.round(((i + 0.5) / fileArray.length) * 100)
 
-      uploadProgress.value = 100
+        try {
+          const result = await uploadSinglePhoto(fileArray[i], ownerId)
+          if (!result.success) {
+            errors.push(`${fileArray[i].name}: ${result.error}`)
+          }
+        } catch (e) {
+          errors.push(`${fileArray[i].name}: ${e.message}`)
+        }
 
-      // 5. Refresh photos list
+        uploadProgress.value = Math.round(((i + 1) / fileArray.length) * 100)
+      }
+
+      // Refresh photos list
       await fetchPhotos()
+
+      if (errors.length > 0) {
+        error.value = errors.join('; ')
+        return { success: false, error: error.value }
+      }
 
       return { success: true, error: null }
     } catch (e) {
@@ -129,6 +162,8 @@ export function usePhotoData(seasonId, year) {
     } finally {
       uploading.value = false
       uploadProgress.value = 0
+      uploadCurrent.value = 0
+      uploadTotal.value = 0
     }
   }
 
@@ -157,9 +192,11 @@ export function usePhotoData(seasonId, year) {
     loading,
     uploading,
     uploadProgress,
+    uploadCurrent,
+    uploadTotal,
     error,
     fetchPhotos,
-    uploadPhoto,
+    uploadPhotos,
     removePhoto,
     isAuthenticated
   }

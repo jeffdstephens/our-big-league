@@ -73,8 +73,10 @@ const {
   loading: photosLoading,
   uploading,
   uploadProgress,
+  uploadCurrent,
+  uploadTotal,
   error: photoError,
-  uploadPhoto,
+  uploadPhotos,
   removePhoto,
   isAuthenticated
 } = usePhotoData(seasonId, year)
@@ -93,8 +95,8 @@ const closeLightbox = () => {
 }
 
 // Photo handlers
-const handleUpload = async (file, caption) => {
-  const result = await uploadPhoto(file, caption)
+const handleUpload = async (files) => {
+  const result = await uploadPhotos(files)
   if (!result.success) {
     console.error('Upload failed:', result.error)
   }
@@ -200,6 +202,8 @@ const handleDelete = async (photo) => {
           <PhotoUploadForm
             :uploading="uploading"
             :upload-progress="uploadProgress"
+            :upload-current="uploadCurrent"
+            :upload-total="uploadTotal"
             :is-authenticated="isAuthenticated"
             @upload="handleUpload"
             class="mb-6"

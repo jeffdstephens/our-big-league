@@ -19,6 +19,12 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const currentIndex = ref(0)
+const zoomLevel = ref(1)
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
+const imageOffset = ref({ x: 0, y: 0 })
+
+const zoomLevels = [1, 1.5, 2, 3]
 
 // Current photo
 const currentPhoto = computed(() => {
@@ -33,17 +39,75 @@ const hasNext = computed(() => currentIndex.value < props.photos.length - 1)
 const goToPrev = () => {
   if (hasPrev.value) {
     currentIndex.value--
+    resetZoom()
   }
 }
 
 const goToNext = () => {
   if (hasNext.value) {
     currentIndex.value++
+    resetZoom()
   }
 }
 
 const close = () => {
+  resetZoom()
   emit('close')
+}
+
+// Zoom functions
+const zoomIn = () => {
+  const currentIdx = zoomLevels.indexOf(zoomLevel.value)
+  if (currentIdx < zoomLevels.length - 1) {
+    zoomLevel.value = zoomLevels[currentIdx + 1]
+  }
+}
+
+const zoomOut = () => {
+  const currentIdx = zoomLevels.indexOf(zoomLevel.value)
+  if (currentIdx > 0) {
+    zoomLevel.value = zoomLevels[currentIdx - 1]
+    if (zoomLevel.value === 1) {
+      imageOffset.value = { x: 0, y: 0 }
+    }
+  }
+}
+
+const resetZoom = () => {
+  zoomLevel.value = 1
+  imageOffset.value = { x: 0, y: 0 }
+}
+
+const toggleZoom = () => {
+  if (zoomLevel.value === 1) {
+    zoomLevel.value = 2
+  } else {
+    resetZoom()
+  }
+}
+
+// Pan when zoomed
+const startDrag = (e) => {
+  if (zoomLevel.value > 1) {
+    isDragging.value = true
+    dragStart.value = {
+      x: e.clientX - imageOffset.value.x,
+      y: e.clientY - imageOffset.value.y
+    }
+  }
+}
+
+const onDrag = (e) => {
+  if (isDragging.value && zoomLevel.value > 1) {
+    imageOffset.value = {
+      x: e.clientX - dragStart.value.x,
+      y: e.clientY - dragStart.value.y
+    }
+  }
+}
+
+const endDrag = () => {
+  isDragging.value = false
 }
 
 // Keyboard navigation
@@ -60,13 +124,21 @@ const handleKeydown = (event) => {
     case 'ArrowRight':
       goToNext()
       break
+    case '+':
+    case '=':
+      zoomIn()
+      break
+    case '-':
+      zoomOut()
+      break
   }
 }
 
-// Reset index when opened with a new initial index
+// Reset when opened
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     currentIndex.value = props.initialIndex
+    resetZoom()
     document.body.style.overflow = 'hidden'
   } else {
     document.body.style.overflow = ''
@@ -76,15 +148,20 @@ watch(() => props.isOpen, (isOpen) => {
 watch(() => props.initialIndex, (newIndex) => {
   if (props.isOpen) {
     currentIndex.value = newIndex
+    resetZoom()
   }
 })
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('mouseup', endDrag)
+  window.addEventListener('mousemove', onDrag)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('mouseup', endDrag)
+  window.removeEventListener('mousemove', onDrag)
   document.body.style.overflow = ''
 })
 </script>
@@ -109,6 +186,31 @@ onUnmounted(() => {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
+
+      <!-- Zoom controls -->
+      <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/50 rounded-full px-3 py-1.5">
+        <button
+          @click="zoomOut"
+          :disabled="zoomLevel === 1"
+          class="text-white/70 hover:text-white disabled:text-white/30 p-1 transition-colors"
+          title="Zoom out (-)"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+          </svg>
+        </button>
+        <span class="text-white/70 text-sm min-w-[3rem] text-center">{{ Math.round(zoomLevel * 100) }}%</span>
+        <button
+          @click="zoomIn"
+          :disabled="zoomLevel === zoomLevels[zoomLevels.length - 1]"
+          class="text-white/70 hover:text-white disabled:text-white/30 p-1 transition-colors"
+          title="Zoom in (+)"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+          </svg>
+        </button>
+      </div>
 
       <!-- Previous button -->
       <button
@@ -135,18 +237,29 @@ onUnmounted(() => {
       </button>
 
       <!-- Image container -->
-      <div class="relative z-10 max-w-[90vw] max-h-[85vh] flex flex-col items-center">
-        <img
-          :src="currentPhoto.url"
-          :alt="currentPhoto.caption || 'Draft photo'"
-          class="max-w-full max-h-[75vh] object-contain rounded-lg"
-        />
+      <div
+        class="relative z-10 max-w-[90vw] max-h-[85vh] flex flex-col items-center overflow-hidden"
+        :class="{ 'cursor-grab': zoomLevel > 1, 'cursor-grabbing': isDragging }"
+      >
+        <div
+          class="overflow-hidden"
+          @mousedown="startDrag"
+        >
+          <img
+            :src="currentPhoto.url"
+            alt="Draft photo"
+            class="max-w-full max-h-[75vh] object-contain rounded-lg transition-transform duration-200 select-none"
+            :style="{
+              transform: `scale(${zoomLevel}) translate(${imageOffset.x / zoomLevel}px, ${imageOffset.y / zoomLevel}px)`,
+              cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
+            }"
+            @click="zoomLevel === 1 ? toggleZoom() : null"
+            draggable="false"
+          />
+        </div>
 
-        <!-- Caption and counter -->
+        <!-- Photo counter -->
         <div class="mt-4 text-center">
-          <p v-if="currentPhoto.caption" class="text-white text-lg mb-2">
-            {{ currentPhoto.caption }}
-          </p>
           <p class="text-white/60 text-sm">
             {{ currentIndex + 1 }} / {{ photos.length }}
           </p>
