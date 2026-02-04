@@ -15,7 +15,6 @@ const navItems = [
   { name: 'Teams', path: '/teams' },
   { name: 'Drafts', path: '/drafts' },
   { name: 'Champions', path: '/champions' },
-  { name: 'About', path: '/about' },
 ]
 
 // Import all logo images dynamically

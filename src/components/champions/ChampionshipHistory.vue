@@ -86,7 +86,7 @@ const sortedSeasons = computed(() => {
         <tr class="bg-obl-header text-white">
           <th
             @click="toggleSort('seasonNumber')"
-            class="px-4 py-3 text-center text-sm font-semibold w-16 cursor-pointer hover:bg-blue-700 transition-colors select-none"
+            class="px-3 py-2 text-center text-sm font-semibold w-16 cursor-pointer hover:bg-blue-700 transition-colors select-none"
           >
             <div class="flex items-center justify-center gap-1">
               <span>Year</span>
@@ -97,7 +97,7 @@ const sortedSeasons = computed(() => {
           </th>
           <th
             @click="toggleSort('year')"
-            class="px-4 py-3 text-center text-sm font-semibold w-20 cursor-pointer hover:bg-blue-700 transition-colors select-none"
+            class="px-3 py-2 text-center text-sm font-semibold w-20 cursor-pointer hover:bg-blue-700 transition-colors select-none"
           >
             <div class="flex items-center justify-center gap-1">
               <span>Season</span>
@@ -108,7 +108,7 @@ const sortedSeasons = computed(() => {
           </th>
           <th
             @click="toggleSort('draftLocation')"
-            class="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-blue-700 transition-colors select-none"
+            class="px-3 py-2 text-center text-sm font-semibold cursor-pointer hover:bg-blue-700 transition-colors select-none"
           >
             <div class="flex items-center justify-center gap-1">
               <span>Draft Location</span>
@@ -119,7 +119,7 @@ const sortedSeasons = computed(() => {
           </th>
           <th
             @click="toggleSort('runnerUp')"
-            class="px-4 py-3 text-center text-sm font-semibold bg-gray-500 cursor-pointer hover:bg-gray-600 transition-colors select-none"
+            class="px-3 py-2 text-center text-sm font-semibold bg-gray-500 cursor-pointer hover:bg-gray-600 transition-colors select-none"
           >
             <div class="flex items-center justify-center gap-1">
               <span>Runner Up</span>
@@ -130,7 +130,7 @@ const sortedSeasons = computed(() => {
           </th>
           <th
             @click="toggleSort('champion')"
-            class="px-4 py-3 text-center text-sm font-semibold bg-amber-500 cursor-pointer hover:bg-amber-600 transition-colors select-none"
+            class="px-3 py-2 text-center text-sm font-semibold bg-amber-500 cursor-pointer hover:bg-amber-600 transition-colors select-none"
           >
             <div class="flex items-center justify-center gap-1">
               <span>Champion</span>
@@ -147,13 +147,13 @@ const sortedSeasons = computed(() => {
           :key="season.year"
           class="border-t border-gray-200 hover:bg-gray-50 transition-colors"
         >
-          <td class="px-4 py-3 text-center font-medium text-gray-600">
+          <td class="px-3 py-1.5 text-center font-medium text-gray-600 text-sm">
             {{ season.seasonNumber }}
           </td>
-          <td class="px-4 py-3 text-center font-semibold">
+          <td class="px-3 py-1.5 text-center font-semibold text-sm">
             {{ season.year }}
           </td>
-          <td class="px-4 py-3 text-center">
+          <td class="px-3 py-1.5 text-center text-sm">
             <RouterLink
               :to="`/drafts/${season.year}`"
               class="text-obl-accent hover:text-blue-700 hover:underline transition-colors"
@@ -161,12 +161,12 @@ const sortedSeasons = computed(() => {
               {{ season.draftLocation }}
             </RouterLink>
           </td>
-          <td class="px-4 py-3 text-center bg-gray-50">
+          <td class="px-3 py-1.5 text-center bg-gray-50 text-sm">
             <span :class="isDefunct(season.runnerUp) ? 'text-gray-300' : 'text-gray-600'">
               {{ season.runnerUp }}
             </span>
           </td>
-          <td class="px-4 py-3 text-center font-semibold bg-amber-50 text-amber-600">
+          <td class="px-3 py-1.5 text-center font-semibold bg-amber-50 text-amber-600 text-sm">
             {{ season.championDisplay }}
           </td>
         </tr>
