@@ -98,7 +98,7 @@ const host = computed(() => {
             <div v-else class="w-16"></div>
 
             <div class="text-center">
-              <h1 class="text-3xl font-bold text-obl-header">{{ year }} Draft</h1>
+              <h1 class="text-3xl font-bold text-black">{{ year }} Draft</h1>
               <p class="text-gray-500">Season {{ season.seasonNumber }}</p>
               <p v-if="host && !host.isCoChampionship" class="text-sm text-gray-600 mt-1">
                 Hosted by: {{ host.firstName }} {{ host.lastName }} ({{ host.teamName }})
