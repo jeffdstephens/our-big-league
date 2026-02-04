@@ -1,7 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useChampionshipData } from '../composables/useChampionshipData'
+import { usePhotoData } from '../composables/usePhotoData'
+import DraftPhotoGrid from '../components/photos/DraftPhotoGrid.vue'
+import PhotoUploadForm from '../components/photos/PhotoUploadForm.vue'
+import PhotoLightbox from '../components/photos/PhotoLightbox.vue'
 
 const route = useRoute()
 const year = computed(() => parseInt(route.params.year))
@@ -60,7 +64,48 @@ const host = computed(() => {
   }
 })
 
-// Championship data is fetched automatically by useChampionshipData composable
+// Get season ID for photo data
+const seasonId = computed(() => season.value?.id || null)
+
+// Photo data
+const {
+  photos,
+  loading: photosLoading,
+  uploading,
+  uploadProgress,
+  error: photoError,
+  uploadPhoto,
+  removePhoto,
+  isAuthenticated
+} = usePhotoData(seasonId, year)
+
+// Lightbox state
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+
+const openLightbox = (index) => {
+  lightboxIndex.value = index
+  lightboxOpen.value = true
+}
+
+const closeLightbox = () => {
+  lightboxOpen.value = false
+}
+
+// Photo handlers
+const handleUpload = async (file, caption) => {
+  const result = await uploadPhoto(file, caption)
+  if (!result.success) {
+    console.error('Upload failed:', result.error)
+  }
+}
+
+const handleDelete = async (photo) => {
+  const result = await removePhoto(photo.id, photo.s3_key)
+  if (!result.success) {
+    console.error('Delete failed:', result.error)
+  }
+}
 </script>
 
 <template>
@@ -147,10 +192,38 @@ const host = computed(() => {
           </div>
         </div>
 
-        <!-- Placeholder for future draft details -->
-        <div class="bg-white rounded-lg shadow-lg p-6 text-center text-gray-500">
-          <p>Draft results and details coming soon...</p>
+        <!-- Photos Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Draft Photos</h2>
+
+          <!-- Upload Form (only for authenticated users) -->
+          <PhotoUploadForm
+            :uploading="uploading"
+            :upload-progress="uploadProgress"
+            :is-authenticated="isAuthenticated"
+            @upload="handleUpload"
+            class="mb-6"
+          />
+
+          <!-- Photo Error -->
+          <p v-if="photoError" class="text-red-600 text-sm mb-4">{{ photoError }}</p>
+
+          <!-- Photo Grid -->
+          <DraftPhotoGrid
+            :photos="photos"
+            :loading="photosLoading"
+            @open-lightbox="openLightbox"
+            @delete="handleDelete"
+          />
         </div>
+
+        <!-- Lightbox -->
+        <PhotoLightbox
+          :is-open="lightboxOpen"
+          :photos="photos"
+          :initial-index="lightboxIndex"
+          @close="closeLightbox"
+        />
       </template>
     </div>
   </div>
