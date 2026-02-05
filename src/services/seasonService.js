@@ -241,6 +241,7 @@ export async function getChampionshipStats() {
   const champCounts = {}
   const appearances = {}
   const lastWinYear = {}
+  const winYearsByTeam = {} // team name → array of winning draft years
 
   seasons.forEach(season => {
     const champion = season.champion
@@ -257,6 +258,8 @@ export async function getChampionshipStats() {
       }
       appearances[name] = (appearances[name] || 0) + 1
       lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
+      if (!winYearsByTeam[name]) winYearsByTeam[name] = []
+      winYearsByTeam[name].push(season.year)
     }
 
     // Count championships - defunct teams with successors
@@ -270,6 +273,8 @@ export async function getChampionshipStats() {
         }
         appearances[name] = (appearances[name] || 0) + 1
         lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
+        if (!winYearsByTeam[name]) winYearsByTeam[name] = []
+        winYearsByTeam[name].push(season.year)
       })
     }
 
@@ -278,6 +283,8 @@ export async function getChampionshipStats() {
       champCounts[name] = (champCounts[name] || 0) + 0.5
       appearances[name] = (appearances[name] || 0) + 1
       lastWinYear[name] = Math.max(lastWinYear[name] || 0, season.year)
+      if (!winYearsByTeam[name]) winYearsByTeam[name] = []
+      winYearsByTeam[name].push(season.year)
     }
 
     // Count runner-up appearances - active teams
@@ -305,15 +312,35 @@ export async function getChampionshipStats() {
     .map(([team]) => team)
 
   // Find longest drought
+  // Note: lastWinYear contains draft years, but championship is crowned the following year
+  // So championship_year = draft_year + 1, and years_since = current_year - championship_year
   const currentYear = new Date().getFullYear()
   const droughts = Object.entries(lastWinYear)
-    .map(([team, year]) => ({ team, years: currentYear - year }))
+    .map(([team, year]) => ({ team, years: currentYear - (year + 1) }))
     .filter(d => d.years > 0)
     .sort((a, b) => b.years - a.years)
 
   // Teams with no titles
   const teamsWithNoTitles = Object.keys(appearances)
     .filter(team => !champCounts[team])
+
+  // Teams with half championships (co-championships)
+  const teamsWithHalfChampionships = Object.entries(champCounts)
+    .filter(([_, count]) => count % 1 !== 0)
+    .map(([team]) => team)
+
+  // Teams with back-to-back championships (consecutive years)
+  const backToBackTeams = []
+  Object.entries(winYearsByTeam).forEach(([team, years]) => {
+    const sortedYears = [...years].sort((a, b) => a - b)
+    for (let i = 0; i < sortedYears.length - 1; i++) {
+      if (sortedYears[i + 1] - sortedYears[i] === 1) {
+        if (!backToBackTeams.includes(team)) {
+          backToBackTeams.push(team)
+        }
+      }
+    }
+  })
 
   return {
     data: {
@@ -327,6 +354,14 @@ export async function getChampionshipStats() {
       noTitles: {
         count: teamsWithNoTitles.length,
         teams: teamsWithNoTitles
+      },
+      halfChampionships: {
+        count: teamsWithHalfChampionships.length,
+        teams: teamsWithHalfChampionships
+      },
+      backToBack: {
+        count: backToBackTeams.length,
+        teams: backToBackTeams
       }
     },
     error: null

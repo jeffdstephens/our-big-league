@@ -3,8 +3,9 @@ import { useChampionshipData } from '../composables/useChampionshipData'
 import ChampionshipStats from '../components/champions/ChampionshipStats.vue'
 import ChampionshipHistory from '../components/champions/ChampionshipHistory.vue'
 import ChampionshipSummary from '../components/champions/ChampionshipSummary.vue'
+import YearsSinceLastTitle from '../components/champions/YearsSinceLastTitle.vue'
 
-const { seasons, loading, error, stats, championshipTiers } = useChampionshipData()
+const { seasons, loading, error, stats, championshipTiers, yearsSinceLastTitle } = useChampionshipData()
 </script>
 
 <template>
@@ -24,6 +25,9 @@ const { seasons, loading, error, stats, championshipTiers } = useChampionshipDat
 
         <!-- Championship Summary by Tier -->
         <ChampionshipSummary :tiers="championshipTiers" />
+
+        <!-- Years Since Last Title -->
+        <YearsSinceLastTitle :data="yearsSinceLastTitle" />
       </template>
     </div>
   </div>
