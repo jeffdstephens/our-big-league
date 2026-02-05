@@ -58,12 +58,12 @@ const formatYears = (team) => {
   <div class="mt-8">
     <h2 class="text-xl font-bold mb-4 text-gray-800">Years Since Last Title</h2>
 
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-      <table class="w-full">
+    <div class="bg-white rounded-lg shadow-lg overflow-x-auto">
+      <table class="w-full min-w-0">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Years Since Title</th>
+            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+            <th class="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Years Since Title</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
@@ -72,20 +72,21 @@ const formatYears = (team) => {
             :key="team.name"
             class="hover:bg-gray-50"
           >
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <img
                   v-if="getLogoUrl(team.name)"
                   :src="getLogoUrl(team.name)"
                   :alt="team.name"
-                  class="w-8 h-8 rounded-full border-2 border-gray-200 mr-3"
+                  class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-200 mr-2 sm:mr-3 flex-shrink-0"
                 />
-                <div v-else class="w-8 h-8 rounded-full bg-gray-200 mr-3"></div>
-                <span class="text-sm font-medium text-gray-900">{{ team.name }}</span>
+                <div v-else class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 mr-2 sm:mr-3 flex-shrink-0"></div>
+                <span class="text-xs sm:text-sm font-medium text-gray-900">{{ team.name }}</span>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right">
+            <td class="px-3 sm:px-6 py-3 sm:py-4 text-right">
               <span
+                class="text-xs sm:text-sm"
                 :class="{
                   'text-amber-600 font-semibold': team.yearsSince === 0,
                   'text-gray-600': team.hasWon && team.yearsSince > 0,
