@@ -115,6 +115,10 @@ CREATE TABLE draft_photos (
 -- Index for fetching photos by season
 CREATE INDEX idx_draft_photos_season ON draft_photos(season_id);
 
+-- Add group photo reference to seasons (after draft_photos table exists)
+ALTER TABLE seasons
+  ADD COLUMN group_photo_id uuid REFERENCES draft_photos(id) ON DELETE SET NULL;
+
 -- ============================================
 -- Row Level Security (RLS) Policies
 -- Public read, authenticated write
