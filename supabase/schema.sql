@@ -29,6 +29,7 @@ CREATE TABLE teams (
   owner_email text,
   owner_phone text,
   is_active boolean DEFAULT true,
+  join_year integer,
   created_at timestamptz DEFAULT now()
 );
 

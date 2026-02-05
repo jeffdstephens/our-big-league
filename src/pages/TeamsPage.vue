@@ -1,24 +1,28 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup, LIcon } from '@vue-leaflet/vue-leaflet'
 import { useTeamData } from '../composables/useTeamData'
+import { getTeams } from '../services/teamService'
+import OwnerTimeline from '../components/teams/OwnerTimeline.vue'
 
 const { teams, loading, error } = useTeamData()
+
+// Fetch all teams (including inactive) for the timeline
+const allTeams = ref([])
+onMounted(async () => {
+  const { data } = await getTeams()
+  if (data) allTeams.value = data
+})
 const mapRef = ref(null)
 
 // Map configuration - centered on continental US
-const defaultCenter = [39.5, -98.35]
-const desktopZoom = 4
-const mobileZoom = 3
-const mobileBreakpoint = 640  // Phones only - tablets use desktop zoom
-
-const getDefaultZoom = () => {
-  return window.innerWidth < mobileBreakpoint ? mobileZoom : desktopZoom
-}
+// Center shifted slightly south to reduce Canada visibility
+const defaultCenter = [36.5, -96]
+const defaultZoom = 4.3
 
 const mapCenter = ref([...defaultCenter])
-const mapZoom = ref(getDefaultZoom())
+const mapZoom = ref(defaultZoom)
 
 // Import all logo images dynamically
 const logoModules = import.meta.glob('@/assets/*.{jpg,png}', { eager: true })
@@ -42,11 +46,42 @@ const teamsWithLogos = computed(() => {
 
 const resetMap = () => {
   if (mapRef.value?.leafletObject) {
-    mapRef.value.leafletObject.setView(defaultCenter, getDefaultZoom())
+    mapRef.value.leafletObject.setView(defaultCenter, defaultZoom)
   }
 }
 
-// Team data is fetched automatically by useTeamData composable
+// Timeline data — includes inactive teams, derives 2 Deep owners from successors
+const timelineTeams = computed(() => {
+  if (!allTeams.value.length) return []
+  return allTeams.value
+    .filter(t => t.join_year)
+    .map(team => {
+      // Look up championship years from active teams stats
+      const activeTeam = teamsWithLogos.value.find(t => t.id === team.id)
+      const firstChampionship = activeTeam?.championshipYears?.[0] || null
+
+      if (!team.is_active && team.name === '2 Deep') {
+        const jf = allTeams.value.find(t => t.name === "Jamaica's Finest")
+        const st = allTeams.value.find(t => t.name === 'Showtime')
+        const owners = [jf, st]
+          .filter(Boolean)
+          .map(t => `${t.owner_first_name} ${t.owner_last_name}`)
+          .join(' & ')
+        return { ...team, logoUrl: null, displayOwner: owners || 'Unknown', firstChampionship: null }
+      }
+      return {
+        ...team,
+        logoUrl: getLogoUrl(team.logo),
+        displayOwner: `${team.owner_first_name} ${team.owner_last_name}`,
+        firstChampionship
+      }
+    })
+})
+
+const yearLabels = {
+  2000: '2Deep Expansion Year',
+  2011: '2Deep Split'
+}
 </script>
 
 <template>
@@ -75,6 +110,7 @@ const resetMap = () => {
           :zoom="mapZoom"
           :center="mapCenter"
           :use-global-leaflet="false"
+          :zoom-snap="0.1"
           style="height: 600px; width: 100%;"
         >
           <!-- CartoDB Positron - clean, modern, minimal -->
@@ -106,6 +142,7 @@ const resetMap = () => {
                 />
                 <h3 class="font-bold text-lg">{{ team.name }}</h3>
                 <p class="text-sm text-gray-600">{{ team.location }}</p>
+                <p class="text-sm text-gray-500">{{ team.owner_first_name }} {{ team.owner_last_name }}</p>
                 <div class="mt-2 text-sm">
                   <p><span class="font-medium">Championships:</span> {{ team.championships }}</p>
                   <p><span class="font-medium">Appearances:</span> {{ team.appearances }}</p>
@@ -118,6 +155,9 @@ const resetMap = () => {
           </l-marker>
         </l-map>
       </div>
+
+      <!-- Owner Timeline -->
+      <OwnerTimeline :teams="timelineTeams" :year-labels="yearLabels" />
     </div>
   </div>
 </template>
