@@ -1,13 +1,27 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useChampionshipData } from '../composables/useChampionshipData'
 import { usePhotoData } from '../composables/usePhotoData'
 import { useAuth } from '../composables/useAuth'
 import { setGroupPhoto } from '../services/seasonService'
+import { getDraftPositionsBySeason } from '../services/draftPositionService'
 import DraftPhotoGrid from '../components/photos/DraftPhotoGrid.vue'
 import PhotoUploadForm from '../components/photos/PhotoUploadForm.vue'
 import PhotoLightbox from '../components/photos/PhotoLightbox.vue'
+
+// Import all logo images dynamically
+const logoModules = import.meta.glob('@/assets/*.{jpg,png}', { eager: true })
+
+const getLogoUrl = (logoFile) => {
+  if (!logoFile) return null
+  for (const [key, module] of Object.entries(logoModules)) {
+    if (key.endsWith(logoFile)) {
+      return module.default
+    }
+  }
+  return null
+}
 
 const route = useRoute()
 const year = computed(() => parseInt(route.params.year))
@@ -171,6 +185,29 @@ const handleSetHero = async (photo) => {
     console.error('Failed to set hero photo:', result.error)
   }
 }
+
+// Draft positions
+const draftOrder = ref([])
+const draftOrderLoading = ref(false)
+
+const fetchDraftOrder = async () => {
+  if (!seasonId.value) return
+  draftOrderLoading.value = true
+  const { data, error: fetchError } = await getDraftPositionsBySeason(seasonId.value)
+  if (!fetchError && data) {
+    draftOrder.value = data.map(d => ({
+      position: d.draft_position,
+      teamName: d.team?.name,
+      logoUrl: getLogoUrl(d.team?.logo)
+    }))
+  }
+  draftOrderLoading.value = false
+}
+
+// Fetch draft order when season changes
+watch(seasonId, (newId) => {
+  if (newId) fetchDraftOrder()
+}, { immediate: true })
 </script>
 
 <template>
@@ -265,6 +302,31 @@ const handleSetHero = async (photo) => {
               class="w-full rounded-lg shadow-md cursor-pointer"
               @click="openLightbox(photos.findIndex(p => p.id === groupPhoto.id))"
             />
+          </div>
+
+          <!-- Draft Order -->
+          <div v-if="draftOrder.length" class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3 text-center">Draft Order</h3>
+            <div class="flex flex-wrap justify-center gap-3">
+              <div
+                v-for="pick in draftOrder"
+                :key="pick.position"
+                class="flex flex-col items-center"
+              >
+                <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 shadow-sm border border-gray-200">
+                  <img
+                    v-if="pick.logoUrl"
+                    :src="pick.logoUrl"
+                    :alt="pick.teamName"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <span class="text-xs font-medium text-gray-600 mt-1">{{ pick.position }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="!draftOrderLoading && seasonId" class="mt-6 text-center text-sm text-gray-400">
+            Draft order not available
           </div>
         </div>
 

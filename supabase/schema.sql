@@ -121,6 +121,22 @@ ALTER TABLE seasons
   ADD COLUMN group_photo_id uuid REFERENCES draft_photos(id) ON DELETE SET NULL;
 
 -- ============================================
+-- Table: draft_positions
+-- Draft order for each team per season
+-- ============================================
+CREATE TABLE draft_positions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  season_id uuid NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  draft_position integer NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(team_id, season_id)
+);
+
+CREATE INDEX idx_draft_positions_team ON draft_positions(team_id);
+CREATE INDEX idx_draft_positions_season ON draft_positions(season_id);
+
+-- ============================================
 -- Row Level Security (RLS) Policies
 -- Public read, authenticated write
 -- ============================================
@@ -133,6 +149,7 @@ ALTER TABLE team_lineage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE approved_owners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE draft_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE draft_positions ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for all tables
 CREATE POLICY "Public read access" ON draft_locations FOR SELECT USING (true);
@@ -161,3 +178,8 @@ CREATE POLICY "Authenticated update" ON seasons FOR UPDATE USING (auth.role() = 
 CREATE POLICY "Authenticated insert" ON draft_photos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated update" ON draft_photos FOR UPDATE USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated delete" ON draft_photos FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Public read access" ON draft_positions FOR SELECT USING (true);
+CREATE POLICY "Authenticated insert" ON draft_positions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated update" ON draft_positions FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated delete" ON draft_positions FOR DELETE USING (auth.role() = 'authenticated');
