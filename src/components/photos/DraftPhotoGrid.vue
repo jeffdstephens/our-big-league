@@ -7,10 +7,18 @@ defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  heroPhotoId: {
+    type: String,
+    default: null
   }
 })
 
-const emit = defineEmits(['open-lightbox', 'delete'])
+const emit = defineEmits(['open-lightbox', 'delete', 'set-hero'])
 
 const openLightbox = (index) => {
   emit('open-lightbox', index)
@@ -64,6 +72,30 @@ const confirmDelete = (photo) => {
         >
           <p class="text-white text-sm truncate">{{ photo.caption }}</p>
         </div>
+
+        <!-- Hero photo badge (filled gold star, always visible) -->
+        <div
+          v-if="photo.id === heroPhotoId"
+          class="absolute top-2 left-2 bg-amber-500 text-white p-1.5 rounded-full shadow-md"
+          :class="isAdmin ? 'cursor-pointer' : ''"
+          title="Hero photo"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </div>
+
+        <!-- Set as hero button (outline star on hover, admin only) -->
+        <button
+          v-if="isAdmin && photo.id !== heroPhotoId"
+          @click.stop="emit('set-hero', photo)"
+          class="absolute top-2 left-2 bg-white/80 text-amber-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-amber-500 hover:text-white"
+          title="Set as hero photo"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </button>
 
         <!-- Delete button (only for owner's photos) -->
         <button

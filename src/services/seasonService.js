@@ -125,6 +125,21 @@ export async function getDraftLocations() {
 }
 
 /**
+ * Set the group/hero photo for a season
+ * @param {string} seasonId - Season UUID
+ * @param {string|null} photoId - draft_photos.id or null to unset
+ * @returns {Promise<{success: boolean, error: Error|null}>}
+ */
+export async function setGroupPhoto(seasonId, photoId) {
+  const { error } = await supabase
+    .from('seasons')
+    .update({ group_photo_id: photoId })
+    .eq('id', seasonId)
+
+  return { success: !error, error }
+}
+
+/**
  * Get championship statistics
  * Includes inherited stats from predecessor teams
  * @returns {Promise<{data: Object|null, error: Error|null}>}

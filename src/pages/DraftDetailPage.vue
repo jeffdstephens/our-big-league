@@ -1,14 +1,50 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useChampionshipData } from '../composables/useChampionshipData'
 import { usePhotoData } from '../composables/usePhotoData'
+import { useAuth } from '../composables/useAuth'
+import { setGroupPhoto } from '../services/seasonService'
 import DraftPhotoGrid from '../components/photos/DraftPhotoGrid.vue'
 import PhotoUploadForm from '../components/photos/PhotoUploadForm.vue'
 import PhotoLightbox from '../components/photos/PhotoLightbox.vue'
 
 const route = useRoute()
 const year = computed(() => parseInt(route.params.year))
+
+/**
+ * Get the Labor Day weekend date range (Friday-Monday) for a given year.
+ * Labor Day = first Monday in September.
+ */
+function getLaborDayWeekend(yr) {
+  const sept1 = new Date(yr, 8, 1) // September 1
+  const dayOfWeek = sept1.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysUntilMonday = dayOfWeek === 1 ? 0 : (8 - dayOfWeek) % 7
+  const laborDay = new Date(yr, 8, 1 + daysUntilMonday)
+  const friday = new Date(laborDay)
+  friday.setDate(laborDay.getDate() - 3)
+  return { friday, monday: laborDay }
+}
+
+function formatDateRange(friday, monday) {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+  const friMonth = months[friday.getMonth()]
+  const monMonth = months[monday.getMonth()]
+  const yr = monday.getFullYear()
+  if (friMonth === monMonth) {
+    return `${friMonth} ${friday.getDate()} - ${monday.getDate()}, ${yr}`
+  }
+  return `${friMonth} ${friday.getDate()} - ${monMonth} ${monday.getDate()}, ${yr}`
+}
+
+const laborDayWeekend = computed(() => {
+  if (!year.value) return null
+  const { friday, monday } = getLaborDayWeekend(year.value)
+  return formatDateRange(friday, monday)
+})
 
 const { seasons, loading, error } = useChampionshipData()
 
@@ -81,6 +117,20 @@ const {
   isAuthenticated
 } = usePhotoData(seasonId, year)
 
+const { isAdmin } = useAuth()
+
+// Local hero photo ID — synced from season data, updated locally on admin action
+const heroPhotoId = ref(null)
+watch(() => season.value?.groupPhotoId, (newId) => {
+  heroPhotoId.value = newId || null
+}, { immediate: true })
+
+// Find the designated group photo from the photos array
+const groupPhoto = computed(() => {
+  if (!heroPhotoId.value || !photos.value?.length) return null
+  return photos.value.find(p => p.id === heroPhotoId.value) || null
+})
+
 // Lightbox state
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
@@ -106,6 +156,19 @@ const handleDelete = async (photo) => {
   const result = await removePhoto(photo.id, photo.s3_key)
   if (!result.success) {
     console.error('Delete failed:', result.error)
+  } else if (photo.id === heroPhotoId.value) {
+    heroPhotoId.value = null
+    if (season.value) season.value.groupPhotoId = null
+  }
+}
+
+const handleSetHero = async (photo) => {
+  const result = await setGroupPhoto(seasonId.value, photo.id)
+  if (result.success) {
+    heroPhotoId.value = photo.id
+    if (season.value) season.value.groupPhotoId = photo.id
+  } else {
+    console.error('Failed to set hero photo:', result.error)
   }
 }
 </script>
@@ -147,6 +210,7 @@ const handleDelete = async (photo) => {
             <div class="text-center">
               <h1 class="text-3xl font-bold text-black">{{ year }} Draft</h1>
               <p class="text-gray-500">Season {{ season.seasonNumber }}</p>
+              <p v-if="laborDayWeekend" class="text-sm text-gray-500">{{ laborDayWeekend }}</p>
               <p v-if="host && !host.isCoChampionship" class="text-sm text-gray-600 mt-1">
                 Hosted by: {{ host.firstName }} {{ host.lastName }} ({{ host.teamName }})
               </p>
@@ -177,13 +241,13 @@ const handleDelete = async (photo) => {
 
             <!-- Runner Up -->
             <div class="bg-gray-50 rounded-lg p-4 text-center border-2 border-gray-400">
-              <div class="text-sm text-gray-500 mb-1">Runner Up</div>
+              <div class="text-sm text-gray-500 mb-1">End of Season Runner Up</div>
               <div class="text-lg font-semibold text-gray-600">{{ season.runnerUp }}</div>
             </div>
 
             <!-- Champion -->
             <div class="bg-amber-50 rounded-lg p-4 text-center border-2 border-amber-500">
-              <div class="text-sm text-gray-500 mb-1">Champion</div>
+              <div class="text-sm text-gray-500 mb-1">End of Season Champion</div>
               <div class="text-lg font-bold text-amber-600">{{ season.championDisplay }}</div>
             </div>
           </div>
@@ -191,6 +255,16 @@ const handleDelete = async (photo) => {
           <!-- Notes -->
           <div v-if="season.note" class="mt-4 text-center text-sm text-gray-500 italic">
             {{ season.note }}
+          </div>
+
+          <!-- Group Photo -->
+          <div v-if="groupPhoto?.url" class="mt-6">
+            <img
+              :src="groupPhoto.url"
+              :alt="`${year} Draft Group Photo`"
+              class="w-full rounded-lg shadow-md cursor-pointer"
+              @click="openLightbox(photos.findIndex(p => p.id === groupPhoto.id))"
+            />
           </div>
         </div>
 
@@ -216,8 +290,11 @@ const handleDelete = async (photo) => {
           <DraftPhotoGrid
             :photos="photos"
             :loading="photosLoading"
+            :is-admin="isAdmin"
+            :hero-photo-id="heroPhotoId"
             @open-lightbox="openLightbox"
             @delete="handleDelete"
+            @set-hero="handleSetHero"
           />
         </div>
 
