@@ -73,11 +73,10 @@ const confirmDelete = (photo) => {
           <p class="text-white text-sm truncate">{{ photo.caption }}</p>
         </div>
 
-        <!-- Hero photo badge (filled gold star, always visible) -->
+        <!-- Hero photo badge (filled gold star, admin only) -->
         <div
-          v-if="photo.id === heroPhotoId"
-          class="absolute top-2 left-2 bg-amber-500 text-white p-1.5 rounded-full shadow-md"
-          :class="isAdmin ? 'cursor-pointer' : ''"
+          v-if="isAdmin && photo.id === heroPhotoId"
+          class="absolute top-2 left-2 bg-amber-500 text-white p-1.5 rounded-full shadow-md cursor-pointer"
           title="Hero photo"
         >
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
