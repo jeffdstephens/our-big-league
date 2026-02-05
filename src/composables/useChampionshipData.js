@@ -51,6 +51,7 @@ export function useChampionshipData() {
         championDisplay: season.champion_display_name || season.champion?.name || 'Unknown',
         coChampion: season.co_champion,  // Keep full co-champion object
         runnerUp: season.runner_up_display_name || season.runner_up?.name || '------',
+        runnerUpTeam: season.runner_up,  // Keep full runner-up team object
         note: season.notes,
         isCoChampionship: season.is_co_championship,
         groupPhotoId: season.group_photo_id || null

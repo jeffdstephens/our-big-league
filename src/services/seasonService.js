@@ -140,6 +140,44 @@ export async function setGroupPhoto(seasonId, photoId) {
 }
 
 /**
+ * Update season results (champion and runner-up)
+ * @param {string} seasonId - Season UUID
+ * @param {string|null} championId - Champion team ID or null
+ * @param {string|null} runnerUpId - Runner-up team ID or null
+ * @returns {Promise<{success: boolean, error: Error|null}>}
+ */
+export async function updateSeasonResults(seasonId, championId, runnerUpId) {
+  const { error } = await supabase
+    .from('seasons')
+    .update({
+      champion_id: championId || null,
+      runner_up_id: runnerUpId || null
+    })
+    .eq('id', seasonId)
+
+  return { success: !error, error }
+}
+
+/**
+ * Create a new season
+ * @param {number} year - Year for the new season
+ * @param {number} seasonNumber - Season number (e.g., 27 for 27th season)
+ * @returns {Promise<{data: Object|null, success: boolean, error: Error|null}>}
+ */
+export async function createSeason(year, seasonNumber) {
+  const { data, error } = await supabase
+    .from('seasons')
+    .insert({
+      year,
+      season_number: seasonNumber
+    })
+    .select()
+    .single()
+
+  return { data, success: !error, error }
+}
+
+/**
  * Get championship statistics
  * Includes inherited stats from predecessor teams
  * @returns {Promise<{data: Object|null, error: Error|null}>}
