@@ -73,6 +73,65 @@ export function useChampionshipData() {
 
   onMounted(fetchChampionships)
 
+  // Compute years since last title for each team
+  const yearsSinceLastTitle = computed(() => {
+    if (!seasons.value || !championshipTiers.value) return []
+
+    const currentYear = new Date().getFullYear()
+    const lastWinDraftYear = {} // team name → most recent draft year won
+
+    // Find last win draft year for each team
+    seasons.value.forEach(season => {
+      const champName = season.champion?.name
+      if (champName) {
+        lastWinDraftYear[champName] = Math.max(
+          lastWinDraftYear[champName] || 0,
+          season.year
+        )
+      }
+      // Handle co-champions
+      if (season.isCoChampionship && season.coChampion?.name) {
+        const coChampName = season.coChampion.name
+        lastWinDraftYear[coChampName] = Math.max(
+          lastWinDraftYear[coChampName] || 0,
+          season.year
+        )
+      }
+    })
+
+    // Get all teams from championship tiers (includes teams with 0 championships)
+    // Also grab appearances count for each team
+    const allTeams = []
+    championshipTiers.value.forEach(tier => {
+      tier.teams.forEach(team => {
+        allTeams.push({ name: team.name, appearances: team.appearances })
+      })
+    })
+
+    // Build result array
+    const result = allTeams.map(team => {
+      const lastDraftYear = lastWinDraftYear[team.name]
+      if (lastDraftYear) {
+        // Championship year = draft year + 1
+        const championshipYear = lastDraftYear + 1
+        const yearsSince = currentYear - championshipYear
+        return { name: team.name, yearsSince, hasWon: true, appearances: team.appearances }
+      } else {
+        return { name: team.name, yearsSince: null, hasWon: false, appearances: team.appearances }
+      }
+    })
+
+    // Sort: winners first (by yearsSince ascending), then non-winners by appearances descending
+    result.sort((a, b) => {
+      if (a.hasWon && !b.hasWon) return -1
+      if (!a.hasWon && b.hasWon) return 1
+      if (a.hasWon && b.hasWon) return a.yearsSince - b.yearsSince
+      return b.appearances - a.appearances
+    })
+
+    return result
+  })
+
   return {
     seasons,
     draftLocations,
@@ -80,6 +139,7 @@ export function useChampionshipData() {
     error,
     stats,
     championshipTiers,
+    yearsSinceLastTitle,
     isDefunct,
     refetch: fetchChampionships
   }
