@@ -1,6 +1,20 @@
 <script setup>
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import houstonImage from '../assets/houston.jpeg'
+import venueExterior from '../assets/little-woodrows-eado.jpg'
+import venueInterior from '../assets/Eado-Inside.jpg'
+import draftLocation from '../assets/our-draft-location.png'
+
+const lightboxImage = ref(null)
+
+function openLightbox(src) {
+  lightboxImage.value = src
+}
+
+function closeLightbox() {
+  lightboxImage.value = null
+}
 </script>
 
 <template>
@@ -25,16 +39,135 @@ import houstonImage from '../assets/houston.jpeg'
       gives us an excuse to explore a new city together. Speaking of which...
     </p>
 
+    <!-- 2026 Draft Venue Announcement -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+      <div class="md:flex">
+        <!-- Three-image grid -->
+        <div class="md:w-2/5 flex flex-col" style="min-height: 360px;">
+          <!-- Top row: two images side by side -->
+          <div class="flex" style="height: 50%;">
+            <div class="relative w-1/2 cursor-pointer group" @click="openLightbox(venueExterior)">
+              <img
+                :src="venueExterior"
+                alt="Little Woodrow's EaDo exterior"
+                class="w-full h-full object-cover transition-opacity group-hover:opacity-90"
+              />
+              <span class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                Little Woodrow's EaDo
+              </span>
+              <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-8 h-8 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+              </span>
+            </div>
+            <div class="relative w-1/2 cursor-pointer group" @click="openLightbox(venueInterior)">
+              <img
+                :src="venueInterior"
+                alt="Little Woodrow's EaDo interior"
+                class="w-full h-full object-cover transition-opacity group-hover:opacity-90"
+              />
+              <span class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                Inside
+              </span>
+              <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-8 h-8 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+              </span>
+            </div>
+          </div>
+          <!-- Bottom: full-width image -->
+          <div class="relative cursor-pointer group" style="height: 50%;" @click="openLightbox(draftLocation)">
+            <img
+              :src="draftLocation"
+              alt="Our draft location"
+              class="w-full h-full object-cover transition-opacity group-hover:opacity-90"
+            />
+            <span class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+              Our Draft Location
+            </span>
+            <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg class="w-8 h-8 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="p-6 md:w-3/5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded uppercase">
+              Venue Confirmed
+            </span>
+            <span class="text-gray-500 text-sm">Season 29</span>
+          </div>
+
+          <h2 class="text-2xl font-bold text-gray-900 mb-3">
+            We've Got Our Spot: Little Woodrow's EaDo
+          </h2>
+
+          <p class="text-gray-700 mb-2">
+            <span class="font-semibold">Saturday, September 5, 2026 · 11 AM – 5 PM CT</span>
+          </p>
+
+          <p class="text-gray-700 mb-4">
+            We locked in the venue for this year's draft — Little Woodrow's EaDo at
+            <a
+              href="https://littlewoodrows.com/locations/eado/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-blue-600 hover:underline"
+            >801 St Emanuel St, Houston, TX 77003</a>.
+            EaDo (East Downtown) is one of Houston's most energetic neighborhoods, right
+            on the edge of downtown near the stadiums and packed with bars and restaurants.
+            Little Woodrow's fits right in. They've got us a private space reserved and
+            we'll each have our own tab, and there's no minimum spend.
+          </p>
+
+          <p class="text-gray-700 mb-4">
+            There's a 3D tour of the space on their website if you want to get a feel for the
+            layout before we show up. One thing to keep in mind: there's an Astros game not
+            too far from the venue that afternoon, so expect the place to pick up later in the
+            day as people filter in to pre-game. Since we're starting the draft at 11, we
+            should be well through our picks before any of that becomes our problem.
+          </p>
+
+          <p class="text-gray-600 italic mb-4">
+            They'll keep us posted as we get closer. They often run fantasy football specials, so more to come on that.
+          </p>
+
+          <p class="text-gray-400 text-xs mb-4">Posted March 30, 2026</p>
+
+          <RouterLink
+            to="/drafts/2026"
+            class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View Draft Details
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </RouterLink>
+        </div>
+      </div>
+    </div>
+
     <!-- 2026 Houston Draft Announcement -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
       <div class="md:flex">
         <!-- Image Section -->
-        <div class="md:w-2/5">
+        <div class="md:w-2/5 cursor-pointer group relative" @click="openLightbox(houstonImage)">
           <img
             :src="houstonImage"
             alt="Houston, Texas skyline"
-            class="w-full h-64 md:h-full object-cover"
+            class="w-full h-64 md:h-full object-cover transition-opacity group-hover:opacity-90"
           />
+          <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg class="w-8 h-8 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+          </span>
         </div>
 
         <!-- Content Section -->
@@ -72,6 +205,8 @@ import houstonImage from '../assets/houston.jpeg'
             an unforgettable draft weekend!
           </p>
 
+          <p class="text-gray-400 text-xs mb-4">Posted February 5, 2026</p>
+
           <RouterLink
             to="/drafts/2026"
             class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
@@ -85,4 +220,27 @@ import houstonImage from '../assets/houston.jpeg'
       </div>
     </div>
   </div>
+
+  <!-- Lightbox -->
+  <Teleport to="body">
+    <div
+      v-if="lightboxImage"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      @click.self="closeLightbox"
+    >
+      <button
+        class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+        @click="closeLightbox"
+      >
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <img
+        :src="lightboxImage"
+        class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        alt="Enlarged view"
+      />
+    </div>
+  </Teleport>
 </template>
