@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import { useChampionshipData } from '../composables/useChampionshipData'
 import { useDraftPositionData } from '../composables/useDraftPositionData'
+import StatLeaderCard from '../components/StatLeaderCard.vue'
 
 const { seasons, draftLocations, loading, error } = useChampionshipData()
 const {
@@ -92,16 +93,22 @@ const teamStatsAlphabetical = computed(() => {
   return [...teamStats.value].sort((a, b) => a.team.name.localeCompare(b.team.name))
 })
 
-// Teams with most/least top 5 picks
-const mostTop5Picks = computed(() => {
-  if (!teamStats.value.length) return null
-  return teamStats.value.reduce((a, b) => a.top5Picks > b.top5Picks ? a : b)
+// Every team holding the extreme value for a stat, so ties are all shown
+const leadersBy = (key, direction = 'max') => computed(() => {
+  if (!teamStats.value.length) return []
+  const values = teamStats.value.map(s => s[key])
+  const best = direction === 'max' ? Math.max(...values) : Math.min(...values)
+  return teamStats.value
+    .filter(s => s[key] === best)
+    .map(s => ({ team: s.team, value: s[key] }))
 })
 
-const leastTop5Picks = computed(() => {
-  if (!teamStats.value.length) return null
-  return teamStats.value.reduce((a, b) => a.top5Picks < b.top5Picks ? a : b)
-})
+const bestAvgPosition = leadersBy('avgPosition', 'min')
+const worstAvgPosition = leadersBy('avgPosition', 'max')
+const mostFirstPicks = leadersBy('firstPicks', 'max')
+const mostLastPicks = leadersBy('lastPicks', 'max')
+const mostTop5Picks = leadersBy('top5Picks', 'max')
+const leastTop5Picks = leadersBy('top5Picks', 'min')
 
 // Average draft position for champions
 const avgChampionDraftPosition = computed(() => {
@@ -239,73 +246,31 @@ const resetMap = () => {
         <div v-if="!positionsLoading && teamStats.length" id="stats" class="mb-8 scroll-mt-4">
           <h2 class="text-xl font-bold mb-4">Draft Position Stats</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Best Avg Position -->
-            <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Best Avg Draft Position</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(teamStats[0]?.team?.logo)"
-                  :src="getLogoUrl(teamStats[0]?.team?.logo)"
-                  :alt="teamStats[0]?.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ teamStats[0]?.team?.name }}</div>
-                  <div class="text-obl-accent text-lg font-semibold">{{ teamStats[0]?.avgPosition }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Best Avg Draft Position"
+              :leaders="bestAvgPosition"
+              value-class="text-obl-accent"
+              :get-logo-url="getLogoUrl"
+            />
 
-            <!-- Worst Avg Position -->
-            <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Worst Avg Draft Position</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(teamStats[teamStats.length - 1]?.team?.logo)"
-                  :src="getLogoUrl(teamStats[teamStats.length - 1]?.team?.logo)"
-                  :alt="teamStats[teamStats.length - 1]?.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ teamStats[teamStats.length - 1]?.team?.name }}</div>
-                  <div class="text-gray-600 text-lg font-semibold">{{ teamStats[teamStats.length - 1]?.avgPosition }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Worst Avg Draft Position"
+              :leaders="worstAvgPosition"
+              :get-logo-url="getLogoUrl"
+            />
 
-            <!-- Most #1 Picks -->
-            <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Most #1 Picks</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(teamStats.reduce((a, b) => a.firstPicks > b.firstPicks ? a : b)?.team?.logo)"
-                  :src="getLogoUrl(teamStats.reduce((a, b) => a.firstPicks > b.firstPicks ? a : b)?.team?.logo)"
-                  :alt="teamStats.reduce((a, b) => a.firstPicks > b.firstPicks ? a : b)?.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ teamStats.reduce((a, b) => a.firstPicks > b.firstPicks ? a : b)?.team?.name }}</div>
-                  <div class="text-amber-600 text-lg font-semibold">{{ teamStats.reduce((a, b) => a.firstPicks > b.firstPicks ? a : b)?.firstPicks }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Most #1 Picks"
+              :leaders="mostFirstPicks"
+              value-class="text-amber-600"
+              :get-logo-url="getLogoUrl"
+            />
 
-            <!-- Most Last Picks -->
-            <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Most Last Picks</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(teamStats.reduce((a, b) => a.lastPicks > b.lastPicks ? a : b)?.team?.logo)"
-                  :src="getLogoUrl(teamStats.reduce((a, b) => a.lastPicks > b.lastPicks ? a : b)?.team?.logo)"
-                  :alt="teamStats.reduce((a, b) => a.lastPicks > b.lastPicks ? a : b)?.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ teamStats.reduce((a, b) => a.lastPicks > b.lastPicks ? a : b)?.team?.name }}</div>
-                  <div class="text-gray-600 text-lg font-semibold">{{ teamStats.reduce((a, b) => a.lastPicks > b.lastPicks ? a : b)?.lastPicks }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Most Last Picks"
+              :leaders="mostLastPicks"
+              :get-logo-url="getLogoUrl"
+            />
 
             <!-- Avg Champion Draft Position -->
             <div v-if="avgChampionDraftPosition" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
@@ -323,39 +288,18 @@ const resetMap = () => {
               </div>
             </div>
 
-            <!-- Most Top 5 Picks -->
-            <div v-if="mostTop5Picks" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Most Top 5 Picks</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(mostTop5Picks.team?.logo)"
-                  :src="getLogoUrl(mostTop5Picks.team?.logo)"
-                  :alt="mostTop5Picks.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ mostTop5Picks.team?.name }}</div>
-                  <div class="text-obl-accent text-lg font-semibold">{{ mostTop5Picks.top5Picks }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Most Top 5 Picks"
+              :leaders="mostTop5Picks"
+              value-class="text-obl-accent"
+              :get-logo-url="getLogoUrl"
+            />
 
-            <!-- Least Top 5 Picks -->
-            <div v-if="leastTop5Picks" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div class="text-sm text-gray-500 mb-2">Fewest Top 5 Picks</div>
-              <div class="flex items-center gap-3">
-                <img
-                  v-if="getLogoUrl(leastTop5Picks.team?.logo)"
-                  :src="getLogoUrl(leastTop5Picks.team?.logo)"
-                  :alt="leastTop5Picks.team?.name"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <div class="font-bold">{{ leastTop5Picks.team?.name }}</div>
-                  <div class="text-gray-600 text-lg font-semibold">{{ leastTop5Picks.top5Picks }}</div>
-                </div>
-              </div>
-            </div>
+            <StatLeaderCard
+              label="Fewest Top 5 Picks"
+              :leaders="leastTop5Picks"
+              :get-logo-url="getLogoUrl"
+            />
 
             <!-- Never Had #1 Pick -->
             <div v-if="neverFirstPick.length" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
