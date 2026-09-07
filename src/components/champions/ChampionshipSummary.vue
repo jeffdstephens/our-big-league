@@ -24,6 +24,7 @@ const getLogoUrl = (teamName) => {
     'Junkyard Dawgs': 'jyd.jpg',
     'Makaveli': 'mak.jpg',
     'Menace': 'menace.jpg',
+    'Large N Charge': 'oc.jpg',
     'Outta Control': 'oc.jpg',
     'Showtime': 'showtime.jpg',
     'Skindeep Ballaz': 'skindeep.png',
