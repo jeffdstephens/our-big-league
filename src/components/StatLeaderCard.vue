@@ -18,7 +18,7 @@ defineProps({
           v-if="getLogoUrl(entry.team.logo)"
           :src="getLogoUrl(entry.team.logo)"
           :alt="entry.team.name"
-          class="w-10 h-10 rounded-full object-cover flex-shrink-0"
+          class="w-6 h-6 rounded-full object-cover flex-shrink-0"
         />
         <div>
           <div class="font-bold">{{ entry.team.name }}</div>
