@@ -314,7 +314,7 @@ const resetMap = () => {
                     v-if="getLogoUrl(stat.team.logo)"
                     :src="getLogoUrl(stat.team.logo)"
                     :alt="stat.team.name"
-                    class="w-6 h-6 rounded-full object-cover"
+                    class="w-6 h-6 rounded-full object-cover flex-shrink-0"
                   />
                   <span class="text-sm font-medium">{{ stat.team.name }}</span>
                 </div>
@@ -334,7 +334,7 @@ const resetMap = () => {
                     v-if="getLogoUrl(stat.team.logo)"
                     :src="getLogoUrl(stat.team.logo)"
                     :alt="stat.team.name"
-                    class="w-6 h-6 rounded-full object-cover"
+                    class="w-6 h-6 rounded-full object-cover flex-shrink-0"
                   />
                   <span class="text-sm font-medium">{{ stat.team.name }}</span>
                 </div>
