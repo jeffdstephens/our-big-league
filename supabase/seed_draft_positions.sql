@@ -81,43 +81,43 @@ SELECT t.id, s.id, 6 FROM teams t, seasons s WHERE t.name = 'Junkyard Dawgs' AND
 INSERT INTO draft_positions (team_id, season_id, draft_position)
 SELECT t.id, s.id, 6 FROM teams t, seasons s WHERE t.name = 'Junkyard Dawgs' AND s.year = 2025;
 
--- Outta Control
+-- Large N Charge
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2003;
+SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2003;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 9 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2004;
+SELECT t.id, s.id, 9 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2004;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 1 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2005;
+SELECT t.id, s.id, 1 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2005;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2007;
+SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2007;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 10 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2009;
+SELECT t.id, s.id, 10 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2009;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 9 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2010;
+SELECT t.id, s.id, 9 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2010;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2011;
+SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2011;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 11 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2012;
+SELECT t.id, s.id, 11 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2012;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 13 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2013;
+SELECT t.id, s.id, 13 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2013;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2014;
+SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2014;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2015;
+SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2015;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2016;
+SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2016;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 3 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2017;
+SELECT t.id, s.id, 3 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2017;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2018;
+SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2018;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 4 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2021;
+SELECT t.id, s.id, 4 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2021;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2022;
+SELECT t.id, s.id, 2 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2022;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 13 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2024;
+SELECT t.id, s.id, 13 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2024;
 INSERT INTO draft_positions (team_id, season_id, draft_position)
-SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Outta Control' AND s.year = 2025;
+SELECT t.id, s.id, 12 FROM teams t, seasons s WHERE t.name = 'Large N Charge' AND s.year = 2025;
 
 -- Menace
 INSERT INTO draft_positions (team_id, season_id, draft_position)
