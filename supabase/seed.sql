@@ -36,7 +36,7 @@ INSERT INTO teams (id, name, location, lat, lng, logo, is_active) VALUES
   ('a0000000-0000-0000-0000-000000000008', 'Junkyard Dawgs', 'Dallas, TX', 32.777, -96.797, 'jyd.jpg', true),
   ('a0000000-0000-0000-0000-000000000009', 'Makaveli', 'Indianapolis, IN', 39.768, -86.158, 'mak.jpg', true),
   ('a0000000-0000-0000-0000-000000000010', 'Menace', 'Bowie, MD', 38.963, -76.710, 'menace.jpg', true),
-  ('a0000000-0000-0000-0000-000000000011', 'Outta Control', 'Philadelphia, PA', 39.952, -75.164, 'oc.jpg', true),
+  ('a0000000-0000-0000-0000-000000000011', 'Large N Charge', 'Philadelphia, PA', 39.952, -75.164, 'oc.jpg', true),
   ('a0000000-0000-0000-0000-000000000012', 'Showtime', 'Springfield, VA', 38.789, -77.187, 'showtime.jpg', true),
   ('a0000000-0000-0000-0000-000000000013', 'Skindeep Ballaz', 'Lorton, VA', 38.704, -77.228, 'skindeep.png', true),
   ('a0000000-0000-0000-0000-000000000014', 'Stout', 'Bowie, MD', 38.923, -76.710, 'stout.jpg', true),
@@ -61,7 +61,9 @@ INSERT INTO team_aliases (team_id, alias) VALUES
   ('a0000000-0000-0000-0000-000000000003', 'Birrrdy''s Revenge'),
   -- Blank aliases
   ('a0000000-0000-0000-0000-000000000002', 'Blank Again'),
-  ('a0000000-0000-0000-0000-000000000002', 'Blankland');
+  ('a0000000-0000-0000-0000-000000000002', 'Blankland'),
+  -- Large N Charge aliases
+  ('a0000000-0000-0000-0000-000000000011', 'Outta Control');
 
 -- ============================================
 -- Team Lineage (splits/mergers)
@@ -103,7 +105,7 @@ INSERT INTO seasons (year, season_number, draft_location_id, champion_id, champi
   (2023, 26, 'b0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000008', 'JunkYard Dawgs', 'a0000000-0000-0000-0000-000000000014', 'AQUA BOOGEE', false, NULL, NULL),
   (2024, 27, 'b0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000001', 'AMW', 'a0000000-0000-0000-0000-000000000002', 'Blankland', false, NULL, NULL),
   (2025, 28, 'b0000000-0000-0000-0000-000000000013', 'a0000000-0000-0000-0000-000000000013', 'Skindeep Ballaz', 'a0000000-0000-0000-0000-000000000010', 'MENACE', false, NULL, NULL),
-  (2026, 29, 'b0000000-0000-0000-0000-000000000015', NULL, 'TBD', NULL, 'TBD', false, NULL, 'Draft to be held in Houston');
+  (2026, 29, 'b0000000-0000-0000-0000-000000000015', NULL, 'TBD', NULL, 'TBD', false, NULL, NULL);
 
 -- ============================================
 -- Verify data was inserted correctly
